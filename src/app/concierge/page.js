@@ -121,7 +121,22 @@ export default function PaginaInbox() {
     }
     const { data: nuevoP } = await supabase.from('wp_prospectos').insert({ nombre: nombreNuevo || telefonoNuevo, telefono: telefonoNuevo, estado: 'nuevo' }).select('id').single()
     if (nuevoP) {
-      await supabase.from('wp_conversaciones').insert({ prospecto_id: nuevoP.id, plataforma: 'whatsapp', id_plataforma: telefonoNuevo })
+      const { data: nuevaC } = await supabase.from('wp_conversaciones').insert({ prospecto_id: nuevoP.id, plataforma: 'whatsapp', id_plataforma: telefonoNuevo }).select('id').single()
+      
+      // Enviar primer mensaje por API
+      const textoSaludo = '✨ ¡Hola! Nos comunicamos de Eventos Boreal. ¿En qué podemos ayudarte?'
+      try {
+        const res = await fetch('/api/enviar-mensaje', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ to: telefonoNuevo, text: textoSaludo, plataforma: 'whatsapp' })
+        })
+        if (res.ok) {
+          await supabase.from('wp_mensajes').insert({ conversacion_id: nuevaC.id, remitente: 'bot', contenido: textoSaludo })
+          await supabase.from('wp_conversaciones').update({ ultimo_mensaje: textoSaludo, actualizado_en: new Date().toISOString() }).eq('id', nuevaC.id)
+        }
+      } catch (err) { console.error('Error enviando mensaje inicial:', err) }
+      
       await cargarConversaciones()
     }
     setModalNuevoChat(false); setTelefonoNuevo(''); setNombreNuevo('')
@@ -379,25 +394,32 @@ export default function PaginaInbox() {
       {modalNuevoChat && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center">
           <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setModalNuevoChat(false)}></div>
-          <div className="relative bg-[var(--cream)] rounded-2xl shadow-ambient w-full max-w-md mx-4 animate-[fadeIn_0.2s_ease-out]">
-            <div className="flex items-center justify-between p-5 border-b border-[var(--gold-soft)]/30">
-              <h2 className="text-lg font-bold text-[var(--gold)] font-serif">Nuevo Chat</h2>
-              <button onClick={() => setModalNuevoChat(false)} className="w-8 h-8 rounded-full flex items-center justify-center hover:bg-[var(--ivory)]">
-                <span className="material-symbols-outlined text-[var(--on-surface-muted)]">close</span>
+          <div className="relative bg-[var(--surface-container-high)] rounded-2xl shadow-xl w-full max-w-md mx-4 animate-[fadeIn_0.2s_ease-out]">
+            <div className="flex items-center justify-between p-5 border-b border-[var(--outline-variant)]/30">
+              <h2 className="text-lg font-bold text-[var(--primary)] font-serif">Nuevo Chat de WhatsApp</h2>
+              <button type="button" onClick={() => setModalNuevoChat(false)} className="w-8 h-8 rounded-full flex items-center justify-center hover:bg-[var(--surface-variant)] transition-colors">
+                <span className="material-symbols-outlined text-[var(--on-surface-variant)]">close</span>
               </button>
             </div>
             <div className="p-5 space-y-4">
-              <div className="flex flex-col gap-1.5">
-                <label className="text-sm font-medium text-[var(--on-surface)]">Número de WhatsApp</label>
-                <input type="tel" placeholder="Ej: 5213412345678" className="w-full rounded-xl bg-[var(--ivory)] text-sm p-3 outline-none focus:ring-2 focus:ring-[var(--gold-soft)]" value={telefonoNuevo} onChange={(e) => setTelefonoNuevo(e.target.value)} />
+              <div className="bg-[var(--primary)]/10 border border-[var(--primary)]/20 p-3 rounded-lg mb-4">
+                <p className="text-[11px] text-[var(--primary)] leading-tight">
+                  <span className="font-bold">Aviso de Meta:</span> Solo puedes iniciar conversaciones enviando un mensaje mediante esta acción. Si es un contacto nuevo y no han pasado 24h desde su último mensaje, debe haber una comunicación previa aprobada para evitar bloqueos.
+                </p>
               </div>
               <div className="flex flex-col gap-1.5">
-                <label className="text-sm font-medium text-[var(--on-surface)]">Nombre (opcional)</label>
-                <input type="text" placeholder="Ej: María García" className="w-full rounded-xl bg-[var(--ivory)] text-sm p-3 outline-none focus:ring-2 focus:ring-[var(--gold-soft)]" value={nombreNuevo} onChange={(e) => setNombreNuevo(e.target.value)} />
+                <label className="text-[13px] font-bold text-[var(--on-surface)] uppercase tracking-wider">Número de WhatsApp (con prefijo)</label>
+                <input type="tel" placeholder="Ej: 5213412345678" className="w-full rounded-xl bg-[var(--surface-container-lowest)] text-sm p-3 outline-none border border-[var(--outline-variant)] focus:border-[var(--primary)] focus:ring-1 focus:ring-[var(--primary)] transition-colors" value={telefonoNuevo} onChange={(e) => setTelefonoNuevo(e.target.value)} />
               </div>
-              <div className="flex items-center justify-end gap-3 pt-3 border-t border-[var(--gold-soft)]/30">
-                <button onClick={() => setModalNuevoChat(false)} className="px-5 py-2.5 text-sm font-semibold text-[var(--on-surface-muted)] hover:bg-[var(--ivory)] rounded-xl transition-colors">Cancelar</button>
-                <button onClick={crearNuevoChat} className="px-5 py-2.5 btn-gold text-sm font-semibold rounded-xl shadow-lg active:scale-95 transition-all">Iniciar Chat</button>
+              <div className="flex flex-col gap-1.5">
+                <label className="text-[13px] font-bold text-[var(--on-surface)] uppercase tracking-wider">Nombre (opcional)</label>
+                <input type="text" placeholder="Ej: María García" className="w-full rounded-xl bg-[var(--surface-container-lowest)] text-sm p-3 outline-none border border-[var(--outline-variant)] focus:border-[var(--primary)] focus:ring-1 focus:ring-[var(--primary)] transition-colors" value={nombreNuevo} onChange={(e) => setNombreNuevo(e.target.value)} />
+              </div>
+              <div className="flex items-center justify-end gap-3 pt-5 mt-2 border-t border-[var(--outline-variant)]/30">
+                <button type="button" onClick={() => setModalNuevoChat(false)} className="px-5 py-2.5 text-sm font-semibold text-[var(--on-surface-variant)] hover:bg-[var(--surface-variant)] rounded-xl transition-colors">Cancelar</button>
+                <button onClick={crearNuevoChat} className="px-6 py-2.5 bg-[var(--primary)] text-white text-sm font-bold rounded-xl shadow-md hover:bg-[#5b4000] active:scale-95 transition-all">
+                  Iniciar Charla
+                </button>
               </div>
             </div>
           </div>
