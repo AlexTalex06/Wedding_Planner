@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import Etiqueta from '@/componentes/Etiqueta'
+
 import ModalFormulario from '@/componentes/ModalFormulario'
 
 export default function PaginaProspectos() {
@@ -112,7 +112,9 @@ export default function PaginaProspectos() {
                   'bg-slate-100 text-slate-600'
                 }`}>{pros.lead_score}</span>
               )}
-              <Etiqueta estado={pros.estado} />
+              <span className="text-[10px] uppercase font-bold px-3 py-1 rounded-full bg-[var(--surface-container-highest)] tracking-widest text-[var(--on-surface-variant)] border border-[var(--outline-variant)]/20">
+                {pros.estado?.replace('_', ' ') || 'Nuevo'}
+              </span>
               <select
                 className="text-xs border-none bg-transparent focus:ring-0 text-[var(--on-surface-muted)] cursor-pointer w-6"
                 value=""
