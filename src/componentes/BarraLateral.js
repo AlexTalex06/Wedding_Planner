@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
 
@@ -16,8 +16,15 @@ const elementosNavegacion = [
 
 export default function BarraLateral() {
   const rutaActual = usePathname()
+  const router = useRouter()
   const [eventoActivo, setEventoActivo] = useState(null)
   const [mensajesNoLeidos, setMensajesNoLeidos] = useState(0)
+
+  const cerrarSesion = async (e) => {
+    e.preventDefault()
+    await supabase.auth.signOut()
+    router.push('/login')
+  }
 
   useEffect(() => {
     const cargar = async () => {
@@ -93,10 +100,10 @@ export default function BarraLateral() {
             <span className="material-symbols-outlined">help</span>
             <span>Soporte</span>
           </a>
-          <a href="/login" className="flex items-center gap-3 px-4 py-2 text-[var(--on-surface)] opacity-60 text-sm rounded-full hover:bg-[var(--surface-variant)] transition-colors">
+          <button onClick={cerrarSesion} className="flex items-center gap-3 px-4 py-2 text-[var(--on-surface)] opacity-60 text-sm rounded-full hover:bg-[var(--surface-variant)] transition-colors w-full text-left">
             <span className="material-symbols-outlined">logout</span>
             <span>Cerrar Sesión</span>
-          </a>
+          </button>
         </div>
       </aside>
 

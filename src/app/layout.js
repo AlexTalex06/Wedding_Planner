@@ -3,11 +3,37 @@
 import './globals.css'
 import BarraLateral from '@/componentes/BarraLateral'
 import BarraSuperior from '@/componentes/BarraSuperior'
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
+import { useEffect, useState } from 'react'
+import { supabase } from '@/lib/supabase'
 
 export default function LayoutRaiz({ children }) {
   const rutaActual = usePathname()
+  const router = useRouter()
   const esLogin = rutaActual === '/login'
+  const [authCargado, setAuthCargado] = useState(false)
+
+  useEffect(() => {
+    const checkAuth = async () => {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session && !esLogin) {
+        router.push('/login')
+      } else {
+        setAuthCargado(true)
+      }
+    }
+    checkAuth()
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'SIGNED_OUT' || !session) {
+        if (!esLogin) router.push('/login')
+      } else {
+        setAuthCargado(true)
+      }
+    })
+
+    return () => subscription.unsubscribe()
+  }, [esLogin, router])
 
   return (
     <html lang="es">
