@@ -51,6 +51,16 @@ export async function POST(solicitud) {
         // Detectar si es invitado (buscar por teléfono en wp_invitados)
         const { data: invitadoMatch } = await supabase.from('wp_invitados').select('*, wp_eventos(*)').eq('telefono', remitenteId).maybeSingle()
         
+        // --- FILTRO DE PALABRA MÁGICA PARA LEADS NUEVOS ---
+        const PALABRA_CLAVE = 'boreal'
+        const dijoPalabraClave = texto.toLowerCase().includes(PALABRA_CLAVE)
+
+        if (!convExist && !invitadoMatch && !dijoPalabraClave) {
+          console.log(`🚫 Ignorando mensaje de ${remitenteId}: No es invitado ni conversación activa, y no dijo '${PALABRA_CLAVE}'.`)
+          return NextResponse.json({ estado: 'ignorado_por_palabra_clave' }, { status: 200 })
+        }
+        // -------------------------------------------------
+
         let prosExist = null
         let tipoContacto = 'desconocido'
         let invitadoData = null
