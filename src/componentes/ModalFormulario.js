@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 
-export default function ModalFormulario({ abierto, alCerrar, titulo, campos, alEnviar, textoBoton = 'Guardar', valoresIniciales = {} }) {
+export default function ModalFormulario({ abierto, alCerrar, titulo, campos, alEnviar, textoBoton = 'Guardar', valoresIniciales = {}, fechasOcupadas = [] }) {
   const [datos, setDatos] = useState(valoresIniciales)
 
   useEffect(() => {
@@ -54,14 +54,26 @@ export default function ModalFormulario({ abierto, alCerrar, titulo, campos, alE
                   onChange={(e) => setDatos({ ...datos, [campo.nombre]: e.target.value })}
                 />
               ) : (
-                <input
-                  type={campo.tipo}
-                  className="w-full rounded-xl bg-[var(--surface-container-lowest)] text-sm p-3 outline-none border border-[var(--outline-variant)] focus:border-[var(--primary)] focus:ring-1 focus:ring-[var(--primary)] text-[var(--on-surface)] transition-colors"
-                  placeholder={campo.placeholder}
-                  required={campo.requerido}
-                  value={datos[campo.nombre] || ''}
-                  onChange={(e) => setDatos({ ...datos, [campo.nombre]: e.target.value })}
-                />
+                <>
+                  <input
+                    type={campo.tipo}
+                    className={`w-full rounded-xl bg-[var(--surface-container-lowest)] text-sm p-3 outline-none border text-[var(--on-surface)] transition-colors ${
+                      campo.tipo === 'date' && fechasOcupadas?.includes(datos[campo.nombre])
+                        ? 'border-red-400 focus:border-red-500 focus:ring-1 focus:ring-red-500'
+                        : 'border-[var(--outline-variant)] focus:border-[var(--primary)] focus:ring-1 focus:ring-[var(--primary)]'
+                    }`}
+                    placeholder={campo.placeholder}
+                    required={campo.requerido}
+                    value={datos[campo.nombre] || ''}
+                    onChange={(e) => setDatos({ ...datos, [campo.nombre]: e.target.value })}
+                  />
+                  {campo.tipo === 'date' && fechasOcupadas?.includes(datos[campo.nombre]) && (
+                    <p className="text-xs text-red-600 font-bold flex items-center gap-1 mt-1">
+                      <span className="material-symbols-outlined text-[14px]">warning</span>
+                      Este día ya tiene un Evento programado.
+                    </p>
+                  )}
+                </>
               )}
             </div>
           ))}

@@ -56,7 +56,7 @@ export default function BarraSuperior() {
       <div className="flex justify-between items-center w-full px-8 py-4">
         <div className="flex items-center gap-6">
           <span className="text-xl font-serif tracking-[0.1em] text-[var(--primary)] whitespace-nowrap">
-            The Modern Concierge
+            {usuario || 'The Modern Concierge'}
           </span>
         </div>
 

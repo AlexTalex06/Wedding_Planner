@@ -9,6 +9,7 @@ export default function PaginaCalendario() {
   const [eventos, setEventos] = useState([])
   const [cargando, setCargando] = useState(true)
   const [modalAbierto, setModalAbierto] = useState(false)
+  const [eventoSeleccionado, setEventoSeleccionado] = useState(null)
   const [fechaInicial, setFechaInicial] = useState('')
   const [mesActual, setMesActual] = useState(new Date())
   const [vista, setVista] = useState('mes')
@@ -172,23 +173,13 @@ export default function PaginaCalendario() {
               const esHoy = dia.fecha === hoyStr
               const tieneEvento = eventosDelDia.length > 0
 
-              const clickDia = () => {
-                if (!dia.fecha) return
-                if (tieneEvento) {
-                  const confirmar = window.confirm(`CUIDADO: Ya tienes la boda/evento "${eventosDelDia[0].nombre_evento}" programado este día. \n\n¿Estás seguro que deseas agendar una cita en la misma fecha?`)
-                  if (!confirmar) return
-                }
-                setFechaInicial(dia.fecha)
-                setModalAbierto(true)
-              }
-
               return (
-                <div key={idx} onClick={clickDia} className={`h-28 p-2 text-sm cursor-pointer transition-colors ${!dia.actual ? 'bg-[var(--surface)] text-stone-300' : esHoy ? 'bg-[var(--primary)]/5 ring-2 ring-[var(--primary)] ring-inset' : tieneEvento ? 'bg-red-50 hover:bg-red-100' : 'bg-white hover:bg-[var(--surface-container-lowest)]'}`}>
+                <div key={idx} className={`h-28 p-2 text-sm transition-colors ${!dia.actual ? 'bg-[var(--surface)] text-stone-300' : esHoy ? 'bg-[var(--primary)]/5 ring-2 ring-[var(--primary)] ring-inset' : tieneEvento ? 'bg-red-50' : 'bg-white'}`}>
                   <span className={`${esHoy ? 'font-bold text-[var(--primary)]' : ''}`}>{dia.numero}</span>
                   
                   {/* Eventos Bloqueantes (Bodas) */}
                   {eventosDelDia.map(ev => (
-                    <div key={ev.id} className="mt-1 p-1 bg-red-100 border-l-4 border-red-500 rounded-r-md text-[9px] leading-tight text-red-900 font-bold truncate">
+                    <div key={ev.id} onClick={() => setEventoSeleccionado(ev)} className="mt-1 p-1 bg-red-100 border-l-4 border-red-500 rounded-r-md text-[9px] leading-tight text-red-900 font-bold truncate cursor-pointer hover:bg-red-200 transition-colors">
                       💍 {ev.nombre_evento}
                     </div>
                   ))}
@@ -249,7 +240,38 @@ export default function PaginaCalendario() {
         </div>
       </div>
 
-      <ModalFormulario abierto={modalAbierto} alCerrar={() => { setModalAbierto(false); setFechaInicial('') }} titulo="Nueva Cita" campos={camposCita} alEnviar={crearCita} textoBoton="Agendar Cita" valoresIniciales={{ fecha: fechaInicial }} />
+      {/* Modal Detalle Evento Rápido */}
+      {eventoSeleccionado && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-200" onClick={() => setEventoSeleccionado(null)}>
+          <div className="bg-white rounded-3xl p-8 w-full max-w-md shadow-2xl animate-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
+            <div className="flex justify-between items-start mb-6">
+              <h2 className="text-xl font-bold font-serif text-[var(--on-surface)] leading-tight flex items-center gap-2">💍 {eventoSeleccionado.nombre_evento}</h2>
+              <button type="button" onClick={() => setEventoSeleccionado(null)} className="w-8 h-8 rounded-full flex items-center justify-center hover:bg-[var(--surface-container)] text-[var(--on-surface-variant)] transition-colors">
+                <span className="material-symbols-outlined text-[18px]">close</span>
+              </button>
+            </div>
+            <div className="space-y-4 text-sm text-[var(--on-surface)]">
+              <div className="flex items-center gap-3">
+                <span className="material-symbols-outlined text-[var(--primary)] text-[18px]">calendar_today</span>
+                <span className="font-semibold">{eventoSeleccionado.fecha_evento}</span>
+              </div>
+              <div className="flex items-center gap-3">
+                <span className="material-symbols-outlined text-[var(--primary)] text-[18px]">schedule</span>
+                <span>{eventoSeleccionado.hora_evento || 'Hora pendiente'}</span>
+              </div>
+              <div className="flex items-center gap-3">
+                <span className="material-symbols-outlined text-[var(--primary)] text-[18px]">location_on</span>
+                <span>{eventoSeleccionado.ubicacion || 'Ubicación pendiente'}</span>
+              </div>
+            </div>
+            <a href="/eventos" className="w-full mt-8 block text-center bg-[var(--primary)] text-white font-bold py-3 rounded-xl shadow hover:bg-[#5b4000] transition-colors text-sm">
+              Ver Detalles Completos en Eventos
+            </a>
+          </div>
+        </div>
+      )}
+
+      <ModalFormulario abierto={modalAbierto} alCerrar={() => { setModalAbierto(false); setFechaInicial('') }} titulo="Nueva Cita" campos={camposCita} alEnviar={crearCita} textoBoton="Agendar Cita" valoresIniciales={{ fecha: fechaInicial }} fechasOcupadas={eventos.map(e => e.fecha_evento)} />
     </div>
   )
 }
