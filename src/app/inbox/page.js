@@ -113,32 +113,35 @@ export default function PaginaInbox() {
 
   const crearNuevoChat = async () => {
     if (!telefonoNuevo.trim()) { alert('Escribe un número de teléfono'); return }
-    const { data: existing } = await supabase.from('wp_conversaciones').select('*').eq('id_plataforma', telefonoNuevo).eq('plataforma', 'whatsapp').maybeSingle()
+    let numNormalizado = telefonoNuevo.trim()
+    if (numNormalizado.startsWith('521') && numNormalizado.length === 13) {
+      numNormalizado = numNormalizado.replace('521', '52')
+    }
+    const { data: existing } = await supabase.from('wp_conversaciones').select('*').eq('id_plataforma', numNormalizado).eq('plataforma', 'whatsapp').maybeSingle()
     if (existing) {
       const conv = conversaciones.find(c => c.id === existing.id)
       if (conv) cambiarChat(conv)
       setModalNuevoChat(false); setTelefonoNuevo(''); setNombreNuevo(''); return
     }
-    const { data: nuevoP } = await supabase.from('wp_prospectos').insert({ nombre: nombreNuevo || telefonoNuevo, telefono: telefonoNuevo, estado: 'nuevo' }).select('id').single()
-    if (nuevoP) {
-      const { data: nuevaC } = await supabase.from('wp_conversaciones').insert({ prospecto_id: nuevoP.id, plataforma: 'whatsapp', id_plataforma: telefonoNuevo }).select('id').single()
-      
-      // Enviar primer mensaje por API
-      const textoSaludo = '✨ ¡Hola! Nos comunicamos de Eventos Boreal. ¿En qué podemos ayudarte?'
-      try {
-        const res = await fetch('/api/enviar-mensaje', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ to: telefonoNuevo, text: textoSaludo, plataforma: 'whatsapp' })
-        })
-        if (res.ok) {
-          await supabase.from('wp_mensajes').insert({ conversacion_id: nuevaC.id, remitente: 'bot', contenido: textoSaludo })
-          await supabase.from('wp_conversaciones').update({ ultimo_mensaje: textoSaludo, actualizado_en: new Date().toISOString() }).eq('id', nuevaC.id)
-        }
-      } catch (err) { console.error('Error enviando mensaje inicial:', err) }
-      
-      await cargarConversaciones()
-    }
+    
+    // Al crearlo manualmente de inicio NO hay lead identificado, prospecto_id = null
+    const { data: nuevaC } = await supabase.from('wp_conversaciones').insert({ prospecto_id: null, plataforma: 'whatsapp', id_plataforma: numNormalizado }).select('id').single()
+    
+    // Enviar primer mensaje por API
+    const textoSaludo = '✨ ¡Hola! Nos comunicamos de Eventos Boreal. ¿En qué podemos ayudarte?'
+    try {
+      const res = await fetch('/api/enviar-mensaje', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ to: numNormalizado, text: textoSaludo, plataforma: 'whatsapp' })
+      })
+      if (res.ok) {
+        await supabase.from('wp_mensajes').insert({ conversacion_id: nuevaC.id, remitente: 'bot', contenido: textoSaludo })
+        await supabase.from('wp_conversaciones').update({ ultimo_mensaje: textoSaludo, actualizado_en: new Date().toISOString() }).eq('id', nuevaC.id)
+      }
+    } catch (err) { console.error('Error enviando mensaje inicial:', err) }
+    
+    await cargarConversaciones()
     setModalNuevoChat(false); setTelefonoNuevo(''); setNombreNuevo('')
   }
 
@@ -251,11 +254,11 @@ export default function PaginaInbox() {
             </div>
           </div>
 
-          <div className="flex-1 overflow-y-auto p-4 space-y-3" style={{ backgroundColor: 'var(--surface)' }}>
+          <div className="flex-1 overflow-y-auto p-4 space-y-3" style={{ backgroundColor: '#efebe3', backgroundImage: 'url("https://www.transparenttextures.com/patterns/cubes.png")' }}>
             {mensajes.length === 0 ? (
-              <div className="flex flex-col items-center justify-center h-full text-[var(--gold-soft)]">
+              <div className="flex flex-col items-center justify-center h-full text-[var(--outline)]">
                 <span className="material-symbols-outlined text-6xl mb-3">chat</span>
-                <p className="font-medium">Sin mensajes aún</p>
+                <p className="font-medium bg-white/60 px-4 py-2 rounded-xl backdrop-blur-sm text-[13px]">Los mensajes cifrados están listos</p>
               </div>
             ) : mensajes.map((msj) => {
               const esBot = msj.remitente === 'bot'
@@ -264,26 +267,18 @@ export default function PaginaInbox() {
               return (
                 <div key={msj.id} className={`flex w-full ${soyYo ? 'justify-end' : 'justify-start'}`}>
                   <div className="max-w-[75%] relative group">
-                    {esBot && (
-                      <div className="flex items-center gap-1 mb-1">
-                        <span className="material-symbols-outlined text-[11px] text-[var(--gold)]">smart_toy</span>
-                        <span className="text-[10px] text-[var(--gold)] font-bold">Evelyn IA</span>
-                      </div>
-                    )}
-                    {esHumano && (
-                      <div className="flex items-center gap-1 mb-1 justify-end">
-                        <span className="text-[10px] text-[var(--gold)] font-bold">Tú</span>
-                        <span className="material-symbols-outlined text-[11px] text-[var(--gold)]">person</span>
-                      </div>
-                    )}
-                    <div className={`px-3.5 py-2.5 rounded-2xl text-[13.5px] leading-relaxed shadow-ambient-sm ${
-                      esBot ? 'bg-[var(--gold-soft)]/30 text-[var(--on-surface)] rounded-tr-sm' :
-                      esHumano ? 'text-white rounded-tr-sm' :
-                      'bg-[var(--cream)] text-[var(--on-surface)] rounded-tl-sm'
-                    }`} style={esHumano ? { background: 'linear-gradient(135deg, #775a19, #d4ad65)' } : {}}>
-                      <p className="whitespace-pre-wrap">{msj.contenido}</p>
-                      <span className={`text-[9px] block text-right mt-1 ${soyYo ? 'opacity-50' : 'text-[var(--on-surface-muted)]'}`}>
+                    <div className={`px-4 py-2 text-[14.5px] leading-[1.35] shadow-sm relative ${
+                      soyYo ? 'bg-[var(--secondary-container)] text-[var(--on-surface)] rounded-tl-xl rounded-bl-xl rounded-br-xl rounded-tr-none' :
+                      'bg-white text-[var(--on-surface)] rounded-tr-xl rounded-br-xl rounded-bl-xl rounded-tl-none border border-[var(--outline-variant)]'
+                    }`}>
+                      {esBot && <p className="text-[10px] font-bold text-[var(--primary)] mb-0.5 flex items-center gap-1"><span className="material-symbols-outlined text-[11px]">smart_toy</span> Evelyn IA</p>}
+                      {esHumano && <p className="text-[10px] font-bold text-[var(--outline)] mb-0.5 flex items-center justify-end gap-1"><span className="material-symbols-outlined text-[11px]">person</span> Tú</p>}
+                      
+                      <p className="whitespace-pre-wrap mb-1">{msj.contenido}</p>
+                      
+                      <span className={`text-[10px] block text-right mt-1 ${soyYo ? 'text-[var(--on-surface-variant)]/80' : 'text-[var(--on-surface-muted)]'}`}>
                         {new Date(msj.creado_en).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}
+                        {soyYo && <span className="material-symbols-outlined text-[13px] ml-1 align-bottom text-[var(--primary)] text-opacity-80">done_all</span>}
                       </span>
                     </div>
                   </div>
@@ -308,16 +303,16 @@ export default function PaginaInbox() {
 
           <form onSubmit={enviarMensaje} className="px-4 py-3 bg-[var(--cream)] border-t border-[var(--gold-soft)]/20 flex items-end gap-2">
             <button type="button" onClick={() => setMostrarEmojis(!mostrarEmojis)}
-              className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors shrink-0 ${mostrarEmojis ? 'bg-[var(--gold)]/10 text-[var(--gold)]' : 'text-[var(--on-surface-muted)] hover:bg-[var(--ivory)]'}`}>
-              <span className="material-symbols-outlined text-[22px]">mood</span>
+              className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors shrink-0 ${mostrarEmojis ? 'bg-[var(--surface-variant)] text-[var(--on-surface)]' : 'text-[var(--on-surface-variant)] hover:bg-[var(--surface-variant)]'}`}>
+              <span className="material-symbols-outlined text-[24px]">mood</span>
             </button>
             <textarea ref={textareaRef} value={nuevoMensaje} onChange={(e) => setNuevoMensaje(e.target.value)} 
               onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); enviarMensaje(e) } }} 
-              placeholder="Escribe un mensaje..." 
-              className="flex-1 bg-[var(--ivory)] rounded-2xl px-4 py-2.5 outline-none resize-none text-[14px] text-[var(--on-surface)] placeholder:text-[var(--on-surface-muted)] focus:ring-2 focus:ring-[var(--gold-soft)] transition-all" 
+              placeholder="Escribe un mensaje" 
+              className="flex-1 bg-white border border-[var(--outline-variant)] shadow-sm rounded-2xl px-4 py-2.5 outline-none resize-none text-[15px] text-[var(--on-surface)] placeholder:text-[var(--on-surface-muted)] focus:ring-1 focus:ring-[var(--primary)] transition-all" 
               rows={1} />
-            <button type="submit" className="w-10 h-10 rounded-full flex items-center justify-center shadow-lg transition-colors shrink-0 active:scale-95 text-white" style={{ background: 'linear-gradient(135deg, #775a19, #d4ad65)' }}>
-              <span className="material-symbols-outlined text-[20px]">send</span>
+            <button type="submit" className="w-10 h-10 rounded-full flex items-center justify-center bg-[var(--primary)] hover:bg-[#5b4000] shadow-md transition-colors shrink-0 active:scale-95 text-white">
+              <span className="material-symbols-outlined text-[20px] ml-1">send</span>
             </button>
           </form>
         </div>

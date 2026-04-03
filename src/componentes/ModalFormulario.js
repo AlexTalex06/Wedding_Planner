@@ -24,7 +24,7 @@ export default function ModalFormulario({ abierto, alCerrar, titulo, campos, alE
             <span className="material-symbols-outlined text-[var(--on-surface-variant)]">close</span>
           </button>
         </div>
-        <form onSubmit={manejarEnvio} className="p-5 space-y-4">
+        <form onSubmit={manejarEnvio} className="p-5 space-y-4 max-h-[80vh] overflow-y-auto">
           {campos.map((campo) => (
             <div key={campo.nombre} className="flex flex-col gap-1.5">
               <label className="text-[13px] font-bold text-[var(--on-surface)] uppercase tracking-wider">{campo.etiqueta}</label>

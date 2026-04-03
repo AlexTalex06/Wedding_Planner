@@ -27,7 +27,13 @@ export async function POST(solicitud) {
       if (valor?.messages && valor.messages.length > 0) {
         const mensajeObj = valor.messages[0]
         const contactoMeta = valor.contacts?.[0]
-        const remitenteId = mensajeObj.from 
+        let remitenteId = mensajeObj.from 
+        
+        // Normalización de números mexicanos (evitar duplicados por el falso 1)
+        if (remitenteId.startsWith('521') && remitenteId.length === 13) {
+          remitenteId = remitenteId.replace('521', '52')
+        }
+
         const nombrePerfil = contactoMeta?.profile?.name || 'Invitado'
         
         // Soportar texto, botones interactivos
@@ -70,36 +76,21 @@ export async function POST(solicitud) {
           invitadoData = invitadoMatch
         }
 
-        // Buscar o crear prospecto
+        // Buscar prospecto asociado o dejarlo como null
         if (convExist && convExist.prospecto_id) {
           const { data: pData } = await supabase.from('wp_prospectos').select('id').eq('id', convExist.prospecto_id).single()
           if (pData) prosExist = pData
         }
         
-        if (!prosExist) {
-          const { data: nuevoP } = await supabase.from('wp_prospectos').insert({ 
-            nombre: nombrePerfil, 
-            telefono: remitenteId, 
-            estado: 'nuevo' 
-          }).select('id').single()
-          prosExist = nuevoP
-
-          if (convExist) {
-            await supabase.from('wp_conversaciones').update({ 
-              prospecto_id: prosExist.id,
-              tipo_contacto: tipoContacto,
-              invitado_id: invitadoMatch?.id || null
-            }).eq('id', convExist.id)
-          } else {
+        if (!convExist) {
             const { data: nuevaC } = await supabase.from('wp_conversaciones').insert({ 
-              prospecto_id: prosExist.id, 
+              prospecto_id: prosExist?.id || null, 
               plataforma: 'whatsapp', 
               id_plataforma: remitenteId,
               tipo_contacto: tipoContacto,
               invitado_id: invitadoMatch?.id || null
             }).select('*').single()
             convExist = nuevaC
-          }
         }
 
         // 2. Evitar duplicados de mensajes
@@ -121,7 +112,11 @@ export async function POST(solicitud) {
         
         // 4. Preparar contexto y consultar EvelynIA
         const { data: historialRaw } = await supabase.from('wp_mensajes').select('remitente, contenido').eq('conversacion_id', convExist.id).order('creado_en', { ascending: false }).limit(30)
-        const { data: freshPros } = await supabase.from('wp_prospectos').select('*').eq('id', prosExist.id).single()
+        let freshPros = {}
+        if (prosExist) {
+          const { data: pData } = await supabase.from('wp_prospectos').select('*').eq('id', prosExist.id).single()
+          if (pData) freshPros = pData
+        }
         
         const historialFormat = (historialRaw || []).reverse().map(m => ({
           role: m.remitente === 'usuario' ? 'user' : 'assistant',
@@ -183,8 +178,26 @@ IMPORTANTE: Si ya conoces datos, NO los preguntes de nuevo. Avanza al siguiente 
 
         console.log(`🤖 EvelynIA (${remitenteId}):`, { intencion, datos })
         
-        // 5. Actualizar CRM según intención
-        if (datos && Object.keys(datos).length > 0) {
+        // 4.1 Evaluar si debemos GENERAR un prospecto nuevo
+        if (!prosExist && !invitadoData) {
+          if (intencion === 'LEAD_CAPTURE' || intencion === 'CIERRE_CITA' || datos?.tipo_contacto === 'lead') {
+            console.log(`🎯 Generando nuevo prospecto para ${remitenteId} a partir de intención del chatbot.`)
+            const { data: nuevoP } = await supabase.from('wp_prospectos').insert({ 
+              nombre: datos.nombre || nombrePerfil, 
+              telefono: remitenteId, 
+              estado: 'nuevo',
+              tipo_evento: datos?.tipo_evento || null,
+              fecha_evento_aprox: datos?.fecha_evento_aprox || null
+            }).select('id').single()
+            if (nuevoP) {
+              prosExist = nuevoP
+              await supabase.from('wp_conversaciones').update({ prospecto_id: prosExist.id, tipo_contacto: 'lead' }).eq('id', convExist.id)
+            }
+          }
+        }
+
+        // 5. Actualizar CRM según intención (si el prospecto ya existe)
+        if (prosExist && datos && Object.keys(datos).length > 0) {
           try {
             const updateData = { actualizado_en: new Date().toISOString() }
             if (datos.nombre) updateData.nombre = datos.nombre
@@ -213,7 +226,7 @@ IMPORTANTE: Si ya conoces datos, NO los preguntes de nuevo. Avanza al siguiente 
         }
 
         // 7. Manejar Citas
-        if (intencion === 'CIERRE_CITA') {
+        if (intencion === 'CIERRE_CITA' && prosExist) {
           const { data: citasExistentes } = await supabase.from('wp_citas')
             .select('id, fecha, hora')
             .eq('prospecto_id', prosExist.id)

@@ -11,7 +11,7 @@ const elementosNavegacion = [
   { nombre: 'Prospectos', ruta: '/prospectos', icono: 'group' },
   { nombre: 'Confirmaciones', ruta: '/confirmaciones', icono: 'event_available' },
   { nombre: 'Calendario', ruta: '/calendario', icono: 'calendar_today' },
-  { nombre: 'Concierge', ruta: '/concierge', icono: 'chat_bubble' },
+  { nombre: 'Inbox', ruta: '/inbox', icono: 'chat_bubble' },
 ]
 
 export default function BarraLateral() {
@@ -87,7 +87,7 @@ export default function BarraLateral() {
                   {el.icono}
                 </span>
                 <span className="flex-1">{el.nombre}</span>
-                {el.nombre === 'Concierge' && mensajesNoLeidos > 0 && (
+                {el.nombre === 'Inbox' && mensajesNoLeidos > 0 && (
                   <span className="bg-[var(--primary)] text-white text-[9px] font-bold w-5 h-5 rounded-full flex items-center justify-center">{mensajesNoLeidos}</span>
                 )}
               </Link>

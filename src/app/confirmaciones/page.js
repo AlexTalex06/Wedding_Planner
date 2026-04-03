@@ -49,7 +49,21 @@ export default function PaginaConfirmaciones() {
     cargarDatos()
   }
 
-  let filtrados = eventoSeleccionado === 'todos' ? invitados : invitados.filter(i => i.evento_id === eventoSeleccionado)
+  // 1. Filtrar primero por EVENTO
+  const invitadosEvento = eventoSeleccionado === 'todos' ? invitados : invitados.filter(i => i.evento_id === eventoSeleccionado)
+
+  // 2. Calcular métricas basadas en el EVENTO seleccionado
+  const total = invitadosEvento.length
+  const totalConfirmados = invitadosEvento.filter(i => i.confirmado === true).length
+  const totalDeclinados = invitadosEvento.filter(i => i.confirmado === false).length
+  const totalPendientes = invitadosEvento.filter(i => i.confirmado === null).length
+  const tasaRespuesta = total > 0 ? Math.round((totalConfirmados / total) * 100) : 0
+  const conAcomp = invitadosEvento.filter(i => i.num_acompanantes > 0).length
+  const sinAcomp = total - conAcomp
+  const pctAcomp = total > 0 ? Math.round((conAcomp / total) * 100) : 0
+
+  // 3. Filtrar por ESTADO para la tabla
+  let filtrados = invitadosEvento
   if (filtroEstado === 'confirmados') filtrados = filtrados.filter(i => i.confirmado === true)
   else if (filtroEstado === 'declinados') filtrados = filtrados.filter(i => i.confirmado === false)
   else if (filtroEstado === 'pendientes') filtrados = filtrados.filter(i => i.confirmado === null)
@@ -57,15 +71,6 @@ export default function PaginaConfirmaciones() {
   const totalFiltrados = filtrados.length
   const totalPaginas = Math.ceil(totalFiltrados / porPagina)
   const paginados = filtrados.slice((pagina - 1) * porPagina, pagina * porPagina)
-
-  const total = invitados.length
-  const totalConfirmados = invitados.filter(i => i.confirmado === true).length
-  const totalDeclinados = invitados.filter(i => i.confirmado === false).length
-  const totalPendientes = invitados.filter(i => i.confirmado === null).length
-  const tasaRespuesta = total > 0 ? Math.round((totalConfirmados / total) * 100) : 0
-  const conAcomp = invitados.filter(i => i.num_acompanantes > 0).length
-  const sinAcomp = total - conAcomp
-  const pctAcomp = total > 0 ? Math.round((conAcomp / total) * 100) : 0
 
   return (
     <div className="p-8 max-w-7xl mx-auto space-y-10">

@@ -11,7 +11,7 @@ const titulosPagina = {
   '/prospectos': 'Prospectos',
   '/confirmaciones': 'Confirmaciones',
   '/calendario': 'Calendario',
-  '/concierge': 'Concierge',
+  '/inbox': 'Inbox',
   '/eventos': 'Eventos',
   '/configuracion': 'Configuración',
 }
