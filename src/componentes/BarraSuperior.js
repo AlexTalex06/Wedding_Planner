@@ -20,7 +20,19 @@ export default function BarraSuperior() {
   const rutaActual = usePathname()
   const router = useRouter()
   const [menuAbierto, setMenuAbierto] = useState(null)
+  const [usuario, setUsuario] = useState(null)
   const menuRef = useRef(null)
+
+  useEffect(() => {
+    const fetchUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (user) {
+        const nombrePerfil = user.user_metadata?.full_name || user.user_metadata?.name || user.email?.split('@')[0] || 'Admin'
+        setUsuario(nombrePerfil)
+      }
+    }
+    fetchUser()
+  }, [])
 
   useEffect(() => {
     const handleClickFuera = (e) => {
@@ -104,7 +116,7 @@ export default function BarraSuperior() {
               {menuAbierto === 'perfil' && (
                 <div className="absolute right-0 mt-2 w-48 bg-white rounded-2xl shadow-xl border border-[var(--outline-variant)]/10 py-2 z-50 overflow-hidden">
                   <div className="px-4 py-2 border-b border-[var(--outline-variant)]/10 mb-2">
-                    <p className="text-sm font-bold text-[var(--on-surface)]">Admin</p>
+                    <p className="text-sm font-bold text-[var(--on-surface)] truncate">{usuario || 'Admin'}</p>
                     <p className="text-[10px] text-[var(--on-surface-variant)]">Eventos Boreal</p>
                   </div>
                   <button onClick={() => { setMenuAbierto(null); router.push('/configuracion') }} className="w-full text-left px-4 py-2 text-xs text-[var(--on-surface)] hover:bg-[var(--surface-variant)] transition-colors flex items-center gap-2">

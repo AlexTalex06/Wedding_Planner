@@ -6,19 +6,23 @@ import ModalFormulario from '@/componentes/ModalFormulario'
 export default function PaginaCalendario() {
   const [citas, setCitas] = useState([])
   const [prospectos, setProspectos] = useState([])
+  const [eventos, setEventos] = useState([])
   const [cargando, setCargando] = useState(true)
   const [modalAbierto, setModalAbierto] = useState(false)
+  const [fechaInicial, setFechaInicial] = useState('')
   const [mesActual, setMesActual] = useState(new Date())
   const [vista, setVista] = useState('mes')
 
   const cargarDatos = async () => {
     setCargando(true)
     try {
-      const [respC, respP] = await Promise.all([fetch('/api/citas'), fetch('/api/prospectos')])
+      const [respC, respP, respE] = await Promise.all([fetch('/api/citas'), fetch('/api/prospectos'), fetch('/api/eventos')])
       const datosC = await respC.json()
       const datosP = await respP.json()
+      const datosE = await respE.json()
       setCitas(Array.isArray(datosC) ? datosC : [])
       setProspectos(Array.isArray(datosP) ? datosP : [])
+      setEventos(Array.isArray(datosE) ? datosE : [])
     } catch (e) { console.error(e) }
     finally { setCargando(false) }
   }
@@ -42,7 +46,7 @@ export default function PaginaCalendario() {
 
   const crearCita = async (datos) => {
     const resp = await fetch('/api/citas', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(datos) })
-    if (resp.ok) { cargarDatos(); setModalAbierto(false) }
+    if (resp.ok) { cargarDatos(); setModalAbierto(false); setFechaInicial('') }
   }
 
   const eliminarCita = async (id) => {
@@ -164,20 +168,42 @@ export default function PaginaCalendario() {
             {/* Day cells */}
             {obtenerDiasMes().map((dia, idx) => {
               const citasDelDia = dia.fecha ? citas.filter(c => c.fecha === dia.fecha) : []
+              const eventosDelDia = dia.fecha ? eventos.filter(e => e.fecha_evento === dia.fecha) : []
               const esHoy = dia.fecha === hoyStr
+              const tieneEvento = eventosDelDia.length > 0
+
+              const clickDia = () => {
+                if (!dia.fecha) return
+                if (tieneEvento) {
+                  const confirmar = window.confirm(`CUIDADO: Ya tienes la boda/evento "${eventosDelDia[0].nombre_evento}" programado este día. \n\n¿Estás seguro que deseas agendar una cita en la misma fecha?`)
+                  if (!confirmar) return
+                }
+                setFechaInicial(dia.fecha)
+                setModalAbierto(true)
+              }
+
               return (
-                <div key={idx} className={`h-28 p-2 text-sm ${!dia.actual ? 'bg-[var(--surface)] text-stone-300' : esHoy ? 'bg-[var(--primary)]/5 ring-2 ring-[var(--primary)] ring-inset' : 'bg-white'}`}>
+                <div key={idx} onClick={clickDia} className={`h-28 p-2 text-sm cursor-pointer transition-colors ${!dia.actual ? 'bg-[var(--surface)] text-stone-300' : esHoy ? 'bg-[var(--primary)]/5 ring-2 ring-[var(--primary)] ring-inset' : tieneEvento ? 'bg-red-50 hover:bg-red-100' : 'bg-white hover:bg-[var(--surface-container-lowest)]'}`}>
                   <span className={`${esHoy ? 'font-bold text-[var(--primary)]' : ''}`}>{dia.numero}</span>
-                  {citasDelDia.slice(0, 2).map(cita => {
+                  
+                  {/* Eventos Bloqueantes (Bodas) */}
+                  {eventosDelDia.map(ev => (
+                    <div key={ev.id} className="mt-1 p-1 bg-red-100 border-l-4 border-red-500 rounded-r-md text-[9px] leading-tight text-red-900 font-bold truncate">
+                      💍 {ev.nombre_evento}
+                    </div>
+                  ))}
+
+                  {/* Citas Regulares */}
+                  {citasDelDia.slice(0, 2 - eventosDelDia.length).map(cita => {
                     const colors = tipoColors[cita.tipo] || tipoColors.consulta
                     return (
-                      <div key={cita.id} className={`mt-1 p-1.5 ${colors.bg} border-l-4 ${colors.border} rounded-r-md text-[9px] leading-tight ${colors.text} font-semibold truncate`}>
+                      <div key={cita.id} onClick={(e) => e.stopPropagation()} className={`mt-1 p-1.5 ${colors.bg} border-l-4 ${colors.border} rounded-r-md text-[9px] leading-tight ${colors.text} font-semibold truncate`}>
                         {cita.hora?.slice(0, 5)} {cita.wp_prospectos?.nombre?.split(' ')[0] || cita.tipo}
                       </div>
                     )
                   })}
-                  {citasDelDia.length > 2 && (
-                    <div className="mt-1 text-[9px] text-[var(--primary)] font-bold">+{citasDelDia.length - 2} más</div>
+                  {citasDelDia.length > (2 - eventosDelDia.length) && (
+                    <div className="mt-1 text-[9px] text-[var(--primary)] font-bold">+{citasDelDia.length - Math.max(0, 2 - eventosDelDia.length)} más</div>
                   )}
                 </div>
               )
@@ -223,7 +249,7 @@ export default function PaginaCalendario() {
         </div>
       </div>
 
-      <ModalFormulario abierto={modalAbierto} alCerrar={() => setModalAbierto(false)} titulo="Nueva Cita" campos={camposCita} alEnviar={crearCita} textoBoton="Agendar Cita" />
+      <ModalFormulario abierto={modalAbierto} alCerrar={() => { setModalAbierto(false); setFechaInicial('') }} titulo="Nueva Cita" campos={camposCita} alEnviar={crearCita} textoBoton="Agendar Cita" valoresIniciales={{ fecha: fechaInicial }} />
     </div>
   )
 }

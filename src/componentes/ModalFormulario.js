@@ -1,9 +1,13 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 
-export default function ModalFormulario({ abierto, alCerrar, titulo, campos, alEnviar, textoBoton = 'Guardar' }) {
-  const [datos, setDatos] = useState({})
+export default function ModalFormulario({ abierto, alCerrar, titulo, campos, alEnviar, textoBoton = 'Guardar', valoresIniciales = {} }) {
+  const [datos, setDatos] = useState(valoresIniciales)
+
+  useEffect(() => {
+    if (abierto) setDatos(valoresIniciales)
+  }, [abierto])
 
   if (!abierto) return null
 
