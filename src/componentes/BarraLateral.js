@@ -19,6 +19,7 @@ export default function BarraLateral() {
   const router = useRouter()
   const [eventoActivo, setEventoActivo] = useState(null)
   const [mensajesNoLeidos, setMensajesNoLeidos] = useState(0)
+  const [usuario, setUsuario] = useState({ nombre: 'Cargando...', rango: 'Planner' })
 
   const cerrarSesion = async (e) => {
     e.preventDefault()
@@ -33,6 +34,14 @@ export default function BarraLateral() {
 
       const { count } = await supabase.from('wp_mensajes').select('*', { count: 'exact', head: true }).eq('leido', false).eq('remitente', 'usuario')
       setMensajesNoLeidos(count || 0)
+
+      const { data: { user } } = await supabase.auth.getUser()
+      if (user) {
+        setUsuario({ 
+          nombre: user.user_metadata?.full_name || user.user_metadata?.name || user.email?.split('@')[0] || 'Usuario', 
+          rango: user.user_metadata?.role || 'Wedding Planner'
+        })
+      }
     }
     cargar()
 
@@ -55,12 +64,10 @@ export default function BarraLateral() {
             </div>
             <div>
               <h3 className="font-serif text-lg text-[var(--primary)] leading-tight">
-                {eventoActivo?.nombre_evento || 'Sin evento'}
+                {usuario.nombre}
               </h3>
-              <p className="text-xs opacity-60">
-                {eventoActivo?.fecha_evento
-                  ? new Date(eventoActivo.fecha_evento + 'T00:00').toLocaleDateString('es-MX', { month: 'long', year: 'numeric' })
-                  : 'Crea tu primer evento'}
+              <p className="text-xs opacity-60 uppercase font-semibold tracking-wider mt-0.5">
+                {usuario.rango}
               </p>
             </div>
           </div>
