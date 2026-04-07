@@ -8,6 +8,7 @@ export default function PaginaEventos() {
   const [cargando, setCargando] = useState(true)
   const [modalAbierto, setModalAbierto] = useState(false)
   const [eventoSeleccionado, setEventoSeleccionado] = useState(null)
+  const [subiendo, setSubiendo] = useState(false)
 
   const cargarDatos = async () => {
     setCargando(true)
@@ -59,6 +60,28 @@ export default function PaginaEventos() {
     if (!confirm('¿Eliminar este evento y todos sus invitados?')) return
     const resp = await fetch(`/api/eventos?id=${id}`, { method: 'DELETE' })
     if (resp.ok) cargarDatos()
+  }
+
+  const alSubirArchivo = async (e, id) => {
+    const file = e.target.files[0]
+    if (!file) return
+    setSubiendo(true)
+    const formData = new FormData()
+    formData.append('archivo', file)
+    formData.append('eventoId', id)
+
+    try {
+      const resp = await fetch('/api/eventos/upload', { method: 'POST', body: formData })
+      if (resp.ok) {
+        const data = await resp.json()
+        setEventoSeleccionado(prev => ({ ...prev, pdf_url: data.url }))
+        cargarDatos()
+      }
+    } catch (err) {
+      console.error('Error subiendo PDF:', err)
+    } finally {
+      setSubiendo(false)
+    }
   }
 
   const tipoIconos = {
@@ -202,6 +225,42 @@ export default function PaginaEventos() {
                   </div>
                 </div>
               </div>
+            </div>
+
+            {/* Digital Invitation Section */}
+            <div className="mt-10 pt-10 border-t border-[var(--outline-variant)]/10">
+              <h4 className="text-sm font-bold font-serif text-[var(--on-surface)] mb-4 flex items-center gap-2">
+                <span className="material-symbols-outlined text-[var(--primary)]">picture_as_pdf</span>
+                Invitación Digital (PDF)
+              </h4>
+              
+              {eventoSeleccionado.pdf_url ? (
+                <div className="flex items-center justify-between p-5 bg-emerald-50 rounded-2xl border border-emerald-100">
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center shadow-sm">
+                      <span className="material-symbols-outlined text-emerald-600">file_present</span>
+                    </div>
+                    <div>
+                      <p className="text-sm font-bold text-emerald-900">Invitación Cargada</p>
+                      <a href={eventoSeleccionado.pdf_url} target="_blank" className="text-xs text-emerald-700 hover:underline">Ver archivo actual</a>
+                    </div>
+                  </div>
+                  <label className="cursor-pointer bg-white text-emerald-600 px-4 py-2 rounded-xl text-xs font-bold shadow-sm hover:bg-emerald-50 transition-colors">
+                    Cambiar PDF
+                    <input type="file" className="hidden" accept=".pdf" onChange={(e) => alSubirArchivo(e, eventoSeleccionado.id)} disabled={subiendo} />
+                  </label>
+                </div>
+              ) : (
+                <div className="p-8 border-2 border-dashed border-[var(--outline-variant)]/30 rounded-2xl flex flex-col items-center justify-center bg-[var(--surface-container-lowest)]">
+                  <span className="material-symbols-outlined text-4xl text-[var(--outline)] mb-3">upload_file</span>
+                  <p className="text-sm font-medium text-[var(--on-surface)] mb-1">No hay invitación cargada</p>
+                  <p className="text-xs text-[var(--on-surface-variant)] mb-4 text-center max-w-[250px]">Sube el PDF oficial para que el bot pueda enviarlo a los invitados.</p>
+                  <label className="gold-gradient text-white px-8 py-3 rounded-full text-sm font-bold shadow-md cursor-pointer active:scale-95 transition-all">
+                    {subiendo ? 'Subiendo...' : 'Subir Invitación PDF'}
+                    <input type="file" className="hidden" accept=".pdf" onChange={(e) => alSubirArchivo(e, eventoSeleccionado.id)} disabled={subiendo} />
+                  </label>
+                </div>
+              )}
             </div>
 
             {eventoSeleccionado.descripcion && (

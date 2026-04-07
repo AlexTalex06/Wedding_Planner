@@ -181,6 +181,13 @@ IMPORTANTE: Si ya conoces datos, NO los preguntes de nuevo. Avanza al siguiente 
         }
 
         console.log(`🤖 EvelynIA (${remitenteId}):`, { intencion, datos })
+
+        // REGLA DE SEGURIDAD: No cerrar cita si no hay día exacto
+        let intencionEfectiva = intencion
+        if (intencion === 'CIERRE_CITA' && !datos.fecha_cita) {
+          console.log("📍 Forzando LEAD_CAPTURE porque falta fecha exacta de cita.")
+          intencionEfectiva = 'LEAD_CAPTURE'
+        }
         
         // 4.1 Evaluar si debemos GENERAR un prospecto nuevo
         if (!prosExist && !invitadoData) {
@@ -218,9 +225,10 @@ IMPORTANTE: Si ya conoces datos, NO los preguntes de nuevo. Avanza al siguiente 
         }
 
         // 6. Manejar RSVP
-        if ((intencion === 'RSVP_CONFIRM' || intencion === 'RSVP_DECLINE') && invitadoData) {
+        if ((intencionEfectiva === 'RSVP_CONFIRM' || intencionEfectiva === 'RSVP_DECLINE') && invitadoData) {
+          console.log(`✅ Procesando RSVP para ${invitadoData.nombre} (${intencionEfectiva})`)
           const rsvpUpdate = {
-            confirmado: intencion === 'RSVP_CONFIRM',
+            confirmado: intencionEfectiva === 'RSVP_CONFIRM',
             fecha_confirmacion: new Date().toISOString(),
             actualizado_en: new Date().toISOString()
           }
@@ -231,7 +239,7 @@ IMPORTANTE: Si ya conoces datos, NO los preguntes de nuevo. Avanza al siguiente 
         }
 
         // 7. Manejar Citas
-        if (intencion === 'CIERRE_CITA' && prosExist) {
+        if (intencionEfectiva === 'CIERRE_CITA' && prosExist) {
           const { data: citasExistentes } = await supabase.from('wp_citas')
             .select('id, fecha, hora')
             .eq('prospecto_id', prosExist.id)
@@ -243,13 +251,13 @@ IMPORTANTE: Si ya conoces datos, NO los preguntes de nuevo. Avanza al siguiente 
 
           let fCitaStr = datos.fecha_cita
           const regexFecha = /^\d{4}-\d{2}-\d{2}$/
+          
           if (!fCitaStr || !regexFecha.test(fCitaStr)) {
-            const diaDefecto = new Date()
-            diaDefecto.setDate(diaDefecto.getDate() + 1)
-            fCitaStr = diaDefecto.toISOString().split('T')[0]
-          }
-
-          if (!citaExistente) {
+             console.log("🛑 Error: Intentando cerrar cita sin fecha válida.")
+             // No hacemos nada, dejamos que la IA siga preguntando en el próximo turno
+          } else {
+             // Lógica de creación/actualización de cita
+             if (!citaExistente) {
             await supabase.from('wp_prospectos').update({ estado: 'agendado', lead_score: 'CALIENTE' }).eq('id', prosExist.id)
             const insertCita = { 
               prospecto_id: prosExist.id, 
@@ -286,9 +294,10 @@ IMPORTANTE: Si ya conoces datos, NO los preguntes de nuevo. Avanza al siguiente 
             console.log('📢 Notificando al admin:', adminPhone)
             await enviarMensajeWhatsApp(adminPhone, msgAdmin)
           } 
-        }
+        } // <--- Cierra el else de la línea 258
+      } // <--- Cierra el if de la línea 242
 
-        // 8. Enviar respuesta por WhatsApp
+      // 8. Enviar respuesta por WhatsApp
         const opcionesLimpias = (datos?.opciones && Array.isArray(datos.opciones) && datos.opciones.length > 0) 
           ? datos.opciones.filter(o => o && typeof o === 'string' && o.trim() !== '') 
           : null

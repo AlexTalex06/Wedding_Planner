@@ -178,8 +178,9 @@ export default function PaginaConfirmaciones() {
         <table className="w-full text-left border-collapse">
           <thead>
             <tr className="bg-[var(--surface-container-low)]">
-              <th className="px-8 py-5 text-xs font-bold uppercase tracking-widest text-[var(--on-surface-variant)]">Nombre</th>
+              <th className="px-8 py-5 text-xs font-bold uppercase tracking-widest text-[var(--on-surface-variant)]">Nombre / Evento</th>
               <th className="px-8 py-5 text-xs font-bold uppercase tracking-widest text-[var(--on-surface-variant)]">Estado</th>
+              <th className="px-8 py-5 text-xs font-bold uppercase tracking-widest text-[var(--on-surface-variant)]">Acomp.</th>
               <th className="px-8 py-5 text-xs font-bold uppercase tracking-widest text-[var(--on-surface-variant)] hidden lg:table-cell">Grupo</th>
               <th className="px-8 py-5 text-xs font-bold uppercase tracking-widest text-[var(--on-surface-variant)] hidden md:table-cell">Notas de Dieta</th>
               <th className="px-8 py-5 text-xs font-bold uppercase tracking-widest text-[var(--on-surface-variant)] text-right">Acciones</th>
@@ -199,7 +200,9 @@ export default function PaginaConfirmaciones() {
                     </div>
                     <div>
                       <p className="font-bold text-[var(--on-surface)] text-sm">{inv.nombre}</p>
-                      <p className="text-xs text-[var(--on-surface-variant)]">{inv.correo || inv.telefono || ''}</p>
+                      <p className="text-[10px] text-[var(--on-surface-variant)] font-bold uppercase opacity-60">
+                        {eventos.find(e => e.id === inv.evento_id)?.nombre_evento || 'Sin evento'}
+                      </p>
                     </div>
                   </div>
                 </td>
@@ -213,6 +216,15 @@ export default function PaginaConfirmaciones() {
                   }`}>
                     {inv.confirmado === true ? 'Confirmado' : inv.confirmado === false ? 'Declinado' : 'Pendiente'}
                   </span>
+                </td>
+                <td className="px-8 py-6">
+                   <div className="flex items-center gap-2">
+                     <span className="material-symbols-outlined text-[var(--primary)] text-sm">group</span>
+                     <span className="text-sm font-bold text-[var(--on-surface)]">
+                       {inv.num_acompanantes || 0}
+                       <span className="text-[var(--on-surface-variant)] font-normal text-xs ml-1">/{inv.max_acompanantes || 0}</span>
+                     </span>
+                   </div>
                 </td>
                 <td className="px-8 py-6 text-sm text-[var(--on-surface)] font-medium hidden lg:table-cell">{inv.grupo || '—'}</td>
                 <td className="px-8 py-6 hidden md:table-cell">

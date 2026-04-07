@@ -277,10 +277,10 @@ export default function PaginaCalendario() {
                     <p className="text-[10px] font-bold uppercase tracking-widest text-[var(--on-surface-variant)] mb-2">Invitados</p>
                     <p className="text-lg font-serif text-[var(--primary)]">{citaSeleccionada.wp_prospectos?.num_invitados_aprox || 'Por definir'}</p>
                  </div>
-                 <div className="bg-[var(--surface-container-low)] p-6 rounded-2xl border border-[var(--outline-variant)]/10">
+                  <div className="bg-[var(--surface-container-low)] p-6 rounded-2xl border border-[var(--outline-variant)]/10">
                     <p className="text-[10px] font-bold uppercase tracking-widest text-[var(--on-surface-variant)] mb-2">Fecha Evento</p>
                     <p className="text-sm font-semibold">{citaSeleccionada.wp_prospectos?.fecha_evento_aprox || 'No confirmada'}</p>
-                 </div>
+                  </div>
                  <div className="bg-[var(--surface-container-low)] p-6 rounded-2xl border border-[var(--outline-variant)]/10">
                     <p className="text-[10px] font-bold uppercase tracking-widest text-[var(--on-surface-variant)] mb-2">Contacto</p>
                     <p className="text-sm font-semibold">{citaSeleccionada.wp_prospectos?.telefono}</p>

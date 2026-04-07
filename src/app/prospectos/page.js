@@ -101,6 +101,8 @@ export default function PaginaProspectos() {
                   {pros.telefono && <span>📱 {pros.telefono}</span>}
                   {pros.tipo_evento && <span>• {pros.tipo_evento}</span>}
                   {pros.fecha_evento_aprox && <span>• 📅 {pros.fecha_evento_aprox}</span>}
+                  {pros.presupuesto && <span>• 💰 {pros.presupuesto}</span>}
+                  {pros.num_invitados_aprox && <span>• 👥 {pros.num_invitados_aprox} pers.</span>}
                 </div>
               </div>
             </div>

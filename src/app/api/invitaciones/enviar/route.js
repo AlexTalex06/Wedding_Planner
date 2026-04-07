@@ -14,6 +14,13 @@ export async function POST(solicitud) {
       return NextResponse.json({ error: 'El nombre de la plantilla es obligatorio para envíos pro' }, { status: 400 })
     }
 
+    // 0. Obtener PDF del evento si existe
+    let pdfUrl = null
+    if (eventoId) {
+       const { data: ev } = await supabase.from('wp_eventos').select('pdf_url').eq('id', eventoId).single()
+       pdfUrl = ev?.pdf_url
+    }
+
     const token = process.env.META_WHATSAPP_TOKEN
     const phoneId = process.env.META_PHONE_NUMBER_ID
     const url = `https://graph.facebook.com/v18.0/${phoneId}/messages`
@@ -47,6 +54,22 @@ export async function POST(solicitud) {
             }
           ]
         }
+      }
+
+      // Si hay PDF, enviar como header
+      if (pdfUrl) {
+        payload.template.components.unshift({
+          type: 'header',
+          parameters: [
+            {
+              type: 'document',
+              document: { 
+                link: pdfUrl, 
+                filename: 'Invitacion.pdf' 
+              }
+            }
+          ]
+        })
       }
 
       try {

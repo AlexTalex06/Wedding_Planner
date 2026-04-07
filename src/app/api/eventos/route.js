@@ -26,7 +26,8 @@ export async function POST(solicitud) {
       link_ubicacion: cuerpo.link_ubicacion,
       codigo_vestimenta: cuerpo.codigo_vestimenta,
       descripcion: cuerpo.descripcion,
-      max_invitados: cuerpo.max_invitados || 100
+      max_invitados: cuerpo.max_invitados || 100,
+      pdf_url: cuerpo.pdf_url || null
     }])
     .select()
     .single()
