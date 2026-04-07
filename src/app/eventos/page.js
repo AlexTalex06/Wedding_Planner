@@ -322,15 +322,17 @@ export default function PaginaEventos() {
           </div>
         </div>
       )}
-      <ModalFormulario
-        abierto={modalEdicionAbierto}
-        alCerrar={() => setModalEdicionAbierto(false)}
-        titulo="Editar Evento"
-        campos={camposEvento}
-        valoresIniciales={eventoSeleccionado}
-        alEnviar={actualizarEvento}
-        textoBoton="Guardar Cambios"
-      />
+      {eventoSeleccionado && (
+        <ModalFormulario
+          abierto={modalEdicionAbierto}
+          alCerrar={() => setModalEdicionAbierto(false)}
+          titulo="Editar Evento"
+          campos={camposEvento}
+          valoresIniciales={eventoSeleccionado}
+          alEnviar={actualizarEvento}
+          textoBoton="Guardar Cambios"
+        />
+      )}
     </div>
   )
 }
