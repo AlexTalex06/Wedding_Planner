@@ -180,26 +180,48 @@ export default function PaginaInvitaciones() {
             <div className="w-10 h-10 rounded-full gold-gradient text-white flex items-center justify-center font-bold text-sm shrink-0">1</div>
             <div className="flex-1">
               <h2 className="font-serif text-2xl font-bold mb-4">Curar Lista de Invitados</h2>
-              <div
-                onClick={() => fileInputRef.current?.click()}
-                className="bg-[var(--surface-container-low)] p-10 rounded-xl border-2 border-dashed border-[var(--outline-variant)]/40 flex flex-col items-center justify-center cursor-pointer hover:border-[var(--primary)]/40 transition-colors"
-              >
-                <span className="material-symbols-outlined text-4xl text-[var(--primary)] mb-3">upload_file</span>
-                <p className="text-sm font-semibold text-[var(--on-surface)]">Arrastra tu archivo CSV o Excel aquí</p>
-                <p className="text-xs text-[var(--on-surface-variant)]">O importa desde los invitados de un evento</p>
-                <input ref={fileInputRef} type="file" accept=".csv,.xlsx,.xls" className="hidden" onChange={procesarCSV} />
+              {/* Selector de Evento Oficial del Módulo */}
+              <div className="mb-6 p-4 bg-white rounded-2xl border border-[var(--outline-variant)]/20 shadow-sm">
+                <label className="text-[10px] font-bold uppercase tracking-widest text-[var(--primary)] opacity-70 mb-2 block">1. Seleccionar Evento para esta Campaña</label>
+                <div className="flex items-center gap-3">
+                  <select 
+                    value={eventoId} 
+                    onChange={e => setEventoId(e.target.value)}
+                    className="bg-[var(--surface-container-low)] border border-[var(--outline-variant)]/30 rounded-xl px-4 py-3 text-sm flex-1 font-bold text-[var(--on-surface)] focus:ring-2 focus:ring-[var(--primary)]/20 outline-none transition-all"
+                  >
+                    <option value="">-- Elige un evento --</option>
+                    {eventos.map(e => (
+                      <option key={e.id} value={e.id}>
+                        {e.tipo_evento === 'boda' ? '💍 ' : '🎉 '}
+                        {e.nombre_evento}
+                      </option>
+                    ))}
+                  </select>
+                  <button 
+                    onClick={importarDesdeEvento} 
+                    disabled={!eventoId}
+                    className={`px-6 py-3 rounded-xl text-sm font-bold transition-all flex items-center gap-2 ${eventoId ? 'gold-gradient text-white shadow-md active:scale-95' : 'bg-[var(--surface-container-highest)] text-[var(--on-surface-variant)] opacity-40 cursor-not-allowed'}`}
+                  >
+                    <span className="material-symbols-outlined text-lg">group</span>
+                    Importar Lista Base
+                  </button>
+                </div>
               </div>
 
-              {/* Import from event */}
-              <div className="mt-4 flex items-center gap-3">
-                <select value={eventoId} onChange={e => setEventoId(e.target.value)}
-                  className="bg-[var(--surface-container-low)] border border-[var(--outline-variant)]/30 rounded-full px-4 py-2 text-sm flex-1 focus:ring-2 focus:ring-[var(--primary)]/20 focus:border-[var(--primary)]">
-                  <option value="">Seleccionar evento...</option>
-                  {eventos.map(e => <option key={e.id} value={e.id}>{e.nombre_evento}</option>)}
-                </select>
-                <button onClick={importarDesdeEvento} className="bg-[var(--surface-container-highest)] text-[var(--primary)] px-4 py-2 rounded-full text-sm font-semibold hover:bg-white transition-colors">
-                  Importar
-                </button>
+              {/* Botón de Carga Manual/CSV */}
+              <div className="flex items-center gap-3 mb-6">
+                <div className="h-[1px] flex-1 bg-[var(--outline-variant)]/30"></div>
+                <span className="text-[10px] font-bold text-[var(--on-surface-variant)] uppercase tracking-tighter">O sube un archivo externo</span>
+                <div className="h-[1px] flex-1 bg-[var(--outline-variant)]/30"></div>
+              </div>
+
+              <div
+                onClick={() => fileInputRef.current?.click()}
+                className="bg-[var(--surface-container-low)] p-6 rounded-xl border-2 border-dashed border-[var(--outline-variant)]/40 flex flex-col items-center justify-center cursor-pointer hover:border-[var(--primary)]/40 hover:bg-white transition-all group"
+              >
+                <span className="material-symbols-outlined text-3xl text-[var(--primary)] mb-2 group-hover:scale-110 transition-transform">csv_file</span>
+                <p className="text-xs font-bold text-[var(--on-surface)]">Subir archivo CSV personalizado</p>
+                <input ref={fileInputRef} type="file" accept=".csv,.xlsx,.xls" className="hidden" onChange={procesarCSV} />
               </div>
 
               {nombreArchivo && (

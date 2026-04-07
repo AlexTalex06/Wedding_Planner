@@ -75,17 +75,40 @@ export default function PaginaConfirmaciones() {
   return (
     <div className="p-8 max-w-7xl mx-auto space-y-10">
       {/* Header */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
-        <div>
-          <h1 className="font-serif text-4xl font-bold tracking-tight text-[var(--on-surface)]">Respuestas de Invitados</h1>
-          <p className="text-[var(--on-surface-variant)]">Vista detallada de asistencia y preferencias para el evento seleccionado.</p>
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6">
+        <div className="space-y-4 flex-1 w-full">
+          <div>
+            <h1 className="font-serif text-4xl font-bold tracking-tight text-[var(--on-surface)]">Respuestas de Invitados</h1>
+            <p className="text-[var(--on-surface-variant)] text-sm">Vista detallada de asistencia y preferencias.</p>
+          </div>
+          
+          {/* Selector de Evento Local */}
+          <div className="flex flex-col gap-1.5 max-w-xs">
+            <label className="text-[10px] font-bold uppercase tracking-widest text-[var(--primary)] opacity-70">Filtrar por Evento</label>
+            <select 
+              className="w-full bg-white border border-[var(--outline-variant)]/30 rounded-xl px-4 py-2.5 text-sm font-semibold text-[var(--on-surface)] focus:ring-2 focus:ring-[var(--primary)]/20 outline-none transition-all shadow-sm"
+              value={eventoSeleccionado}
+              onChange={(e) => { setEventoSeleccionado(e.target.value); setPagina(1) }}
+            >
+              <option value="todos">🌟 Todos los Eventos</option>
+              {eventos.map(ev => (
+                <option key={ev.id} value={ev.id}>
+                  {ev.tipo_evento === 'boda' ? '💍 ' : ev.tipo_evento === 'xv_anos' ? '🎂 ' : '🎉 '}
+                  {ev.nombre_evento}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
-        <div className="flex gap-3">
-          <button className="bg-[var(--surface-container-highest)] text-[var(--primary)] px-6 py-3 rounded-full font-bold text-sm hover:opacity-80 transition-opacity">
-            Exportar CSV
+        
+        <div className="flex gap-3 w-full md:w-auto">
+          <button className="flex-1 md:flex-none bg-[var(--surface-container-highest)] text-[var(--primary)] px-6 py-3 rounded-xl font-bold text-sm hover:opacity-80 transition-opacity flex items-center justify-center gap-2">
+            <span className="material-symbols-outlined text-lg">download</span>
+            Exportar
           </button>
-          <button onClick={() => setModalAbierto(true)} className="gold-gradient text-white px-8 py-3 rounded-full font-bold text-sm shadow-md hover:opacity-90 transition-opacity">
-            Añadir Invitado Manualmente
+          <button onClick={() => setModalAbierto(true)} className="flex-1 md:flex-none gold-gradient text-white px-8 py-3 rounded-xl font-bold text-sm shadow-md hover:opacity-90 transition-opacity flex items-center justify-center gap-2">
+            <span className="material-symbols-outlined text-lg">person_add</span>
+            Nuevo Invitado
           </button>
         </div>
       </div>

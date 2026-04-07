@@ -64,15 +64,22 @@ export default function PaginaEventos() {
   }
 
   const actualizarEvento = async (datos) => {
+    // Sanitizar datos: eliminar wp_invitados si existe para evitar error en PATCH
+    const { wp_invitados, ...datosLimpios } = datos
+
     const resp = await fetch('/api/eventos', {
        method: 'PATCH',
        headers: { 'Content-Type': 'application/json' },
-       body: JSON.stringify({ id: eventoSeleccionado.id, ...datos })
+       body: JSON.stringify({ id: eventoSeleccionado.id, ...datosLimpios })
     })
+    
     if (resp.ok) {
        setModalEdicionAbierto(false)
        setEventoSeleccionado(null)
        cargarDatos()
+    } else {
+       const errorData = await resp.json()
+       alert(`❌ Error al actualizar: ${errorData.error || 'Inténtalo de nuevo'}`)
     }
   }
 

@@ -4,7 +4,6 @@ import { usePathname, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { useState, useRef, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
-import SelectorEventoGlobal from '@/componentes/SelectorEventoGlobal'
 
 const titulosPagina = {
   '/': 'Panel de Control',
@@ -59,7 +58,6 @@ export default function BarraSuperior() {
           <span className="text-xl font-serif tracking-[0.1em] text-[var(--primary)] whitespace-nowrap">
             Eventos Boreal
           </span>
-          <SelectorEventoGlobal />
         </div>
 
         <div className="flex items-center gap-4">
