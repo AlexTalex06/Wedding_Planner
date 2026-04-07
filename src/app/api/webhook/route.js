@@ -207,6 +207,7 @@ IMPORTANTE: Si ya conoces datos, NO los preguntes de nuevo. Avanza al siguiente 
             if (datos.nombre) updateData.nombre = datos.nombre
             if (datos.tipo_evento) updateData.tipo_evento = datos.tipo_evento
             if (datos.fecha_evento_aprox) updateData.fecha_evento_aprox = datos.fecha_evento_aprox
+            if (datos.presupuesto) updateData.presupuesto = datos.presupuesto
             if (datos.num_invitados_aprox) updateData.num_invitados_aprox = datos.num_invitados_aprox
 
             const { error: crmError } = await supabase.from('wp_prospectos').update(updateData).eq('id', prosExist.id)
@@ -269,6 +270,22 @@ IMPORTANTE: Si ya conoces datos, NO los preguntes de nuevo. Avanza al siguiente 
               await supabase.from('wp_prospectos').update({ lead_score: 'CALIENTE' }).eq('id', prosExist.id)
             }
           }
+
+          // --- NOTIFICACIÓN AL ADMINISTRADOR ---
+          const adminPhone = process.env.ADMIN_PHONE_NUMBER
+          if (adminPhone) {
+            const msgAdmin = `💍 *¡NUEVA CITA AGENDADA EN BOREAL!* 💍\n\n` +
+              `👤 *Cliente:* ${datos.nombre || nombrePerfil}\n` +
+              `📅 *Fecha:* ${fCitaStr}\n` +
+              `⏰ *Hora:* ${datos.hora_cita || '16:00'}\n` +
+              `✨ *Evento:* ${datos.tipo_evento || 'Por definir'}\n` +
+              `💰 *Presupuesto:* ${datos.presupuesto || 'No especificado'}\n` +
+              `👥 *Invitados:* ${datos.num_invitados_aprox || 'No especificado'}\n\n` +
+              `🔗 *Ver en Calendario:* https://wedding-planner-boreal.vercel.app/calendario`
+            
+            console.log('📢 Notificando al admin:', adminPhone)
+            await enviarMensajeWhatsApp(adminPhone, msgAdmin)
+          } 
         }
 
         // 8. Enviar respuesta por WhatsApp

@@ -10,6 +10,7 @@ export default function PaginaCalendario() {
   const [cargando, setCargando] = useState(true)
   const [modalAbierto, setModalAbierto] = useState(false)
   const [eventoSeleccionado, setEventoSeleccionado] = useState(null)
+  const [citaSeleccionada, setCitaSeleccionada] = useState(null)
   const [fechaInicial, setFechaInicial] = useState('')
   const [mesActual, setMesActual] = useState(new Date())
   const [vista, setVista] = useState('mes')
@@ -188,7 +189,7 @@ export default function PaginaCalendario() {
                   {citasDelDia.slice(0, 2 - eventosDelDia.length).map(cita => {
                     const colors = tipoColors[cita.tipo] || tipoColors.consulta
                     return (
-                      <div key={cita.id} onClick={(e) => e.stopPropagation()} className={`mt-1 p-1.5 ${colors.bg} border-l-4 ${colors.border} rounded-r-md text-[9px] leading-tight ${colors.text} font-semibold truncate`}>
+                      <div key={cita.id} onClick={(e) => { e.stopPropagation(); setCitaSeleccionada(cita); }} className={`mt-1 p-1.5 ${colors.bg} border-l-4 ${colors.border} rounded-r-md text-[9px] leading-tight ${colors.text} font-semibold truncate cursor-pointer hover:brightness-95`}>
                         {cita.hora?.slice(0, 5)} {cita.wp_prospectos?.nombre?.split(' ')[0] || cita.tipo}
                       </div>
                     )
@@ -214,10 +215,10 @@ export default function PaginaCalendario() {
               {citasHoy.length === 0 ? (
                 <p className="text-sm text-[var(--on-surface-variant)] text-center py-6">No hay citas para hoy</p>
               ) : citasHoy.map(cita => (
-                <div key={cita.id} className="bg-white p-5 rounded-lg border border-transparent hover:border-[var(--primary-container)] transition-colors group">
+                <div key={cita.id} onClick={() => setCitaSeleccionada(cita)} className="bg-white p-5 rounded-lg border border-transparent hover:border-[var(--primary-container)] transition-colors group cursor-pointer">
                   <div className="flex justify-between items-start mb-3">
-                    <span className="text-xs font-bold text-[var(--primary)] uppercase tracking-widest">{cita.hora}</span>
-                    <button onClick={() => eliminarCita(cita.id)} className="material-symbols-outlined text-[var(--outline)] group-hover:text-[var(--primary)] transition-colors text-lg">more_vert</button>
+                    <span className="text-xs font-bold text-[var(--primary)] uppercase tracking-widest">{cita.hora.slice(0, 5)}</span>
+                    <button onClick={(e) => { e.stopPropagation(); eliminarCita(cita.id); }} className="material-symbols-outlined text-[var(--outline)] group-hover:text-[var(--primary)] transition-colors text-lg">delete</button>
                   </div>
                   <h5 className="font-bold text-[var(--on-surface)] mb-1">{cita.tipo?.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}</h5>
                   <p className="text-sm text-[var(--on-surface-variant)] mb-4">{cita.wp_prospectos?.nombre || 'Sin nombre'}</p>
@@ -239,6 +240,74 @@ export default function PaginaCalendario() {
           </div>
         </div>
       </div>
+
+      {/* Modal Detalle Cita (Bento Contextual) */}
+      {citaSeleccionada && (
+        <div className="fixed inset-0 z-[110] flex items-center justify-end p-0 md:p-6 bg-black/40 backdrop-blur-sm animate-in fade-in duration-300" onClick={() => setCitaSeleccionada(null)}>
+          <div className="bg-white h-full md:h-fit w-full max-w-lg md:rounded-3xl shadow-2xl p-8 overflow-y-auto animate-in slide-in-from-right duration-300 shadow-gold" onClick={e => e.stopPropagation()}>
+            <div className="flex justify-between items-center mb-8">
+              <span className="text-xs font-bold text-[var(--primary)] uppercase tracking-[0.2em] bg-[var(--primary)]/5 px-4 py-2 rounded-full">Expediente del Día</span>
+              <button onClick={() => setCitaSeleccionada(null)} className="w-10 h-10 rounded-full flex items-center justify-center hover:bg-[var(--surface-container)] text-[var(--on-surface-variant)] transition-colors">
+                <span className="material-symbols-outlined text-2xl">close</span>
+              </button>
+            </div>
+
+            <div className="space-y-10">
+              {/* Profile Header */}
+              <div className="flex items-center gap-6">
+                 <div className="w-20 h-20 rounded-3xl gold-gradient flex items-center justify-center text-white text-3xl font-serif">
+                   {citaSeleccionada.wp_prospectos?.nombre?.charAt(0) || 'P'}
+                 </div>
+                 <div>
+                   <h2 className="text-3xl font-serif text-[var(--on-surface)] mb-1">{citaSeleccionada.wp_prospectos?.nombre}</h2>
+                   <p className="text-[var(--primary)] font-semibold flex items-center gap-2">
+                     <span className="material-symbols-outlined text-sm">auto_awesome</span>
+                     Lead Caliente: {citaSeleccionada.wp_prospectos?.tipo_evento || 'Boda'}
+                   </p>
+                 </div>
+              </div>
+
+              {/* Bento Data Grid */}
+              <div className="grid grid-cols-2 gap-4">
+                 <div className="bg-[var(--surface-container-low)] p-6 rounded-2xl border border-[var(--outline-variant)]/10">
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-[var(--on-surface-variant)] mb-2">Presupuesto</p>
+                    <p className="text-lg font-serif text-[var(--primary)]">{citaSeleccionada.wp_prospectos?.presupuesto || 'No definido'}</p>
+                 </div>
+                 <div className="bg-[var(--surface-container-low)] p-6 rounded-2xl border border-[var(--outline-variant)]/10">
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-[var(--on-surface-variant)] mb-2">Invitados</p>
+                    <p className="text-lg font-serif text-[var(--primary)]">{citaSeleccionada.wp_prospectos?.num_invitados_aprox || 'Por definir'}</p>
+                 </div>
+                 <div className="bg-[var(--surface-container-low)] p-6 rounded-2xl border border-[var(--outline-variant)]/10">
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-[var(--on-surface-variant)] mb-2">Fecha Evento</p>
+                    <p className="text-sm font-semibold">{citaSeleccionada.wp_prospectos?.fecha_evento_aprox || 'No confirmada'}</p>
+                 </div>
+                 <div className="bg-[var(--surface-container-low)] p-6 rounded-2xl border border-[var(--outline-variant)]/10">
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-[var(--on-surface-variant)] mb-2">Contacto</p>
+                    <p className="text-sm font-semibold">{citaSeleccionada.wp_prospectos?.telefono}</p>
+                 </div>
+              </div>
+
+              {/* Bot Meta Data */}
+              <div className="p-6 bg-emerald-50 rounded-2xl border border-emerald-100 italic text-emerald-900/70 text-sm flex items-start gap-4">
+                 <span className="material-symbols-outlined text-emerald-500">info</span>
+                 <p aria-label="Notas IA">
+                   {citaSeleccionada.notas || 'Evelyn agendó esta cita automáticamente tras confirmar interés real.'}
+                 </p>
+              </div>
+
+              {/* Quick Actions */}
+              <div className="flex gap-4 pt-4">
+                <a href={`https://wa.me/${citaSeleccionada.wp_prospectos?.telefono?.replace(/\D/g,'')}`} target="_blank" className="flex-1 bg-[#25D366] text-white font-bold py-4 rounded-2xl flex items-center justify-center gap-2 shadow-lg hover:brightness-95 transition-all text-sm">
+                   WhatsApp
+                </a>
+                <button className="px-6 py-4 rounded-2xl border-2 border-[var(--primary)] text-[var(--primary)] font-bold text-sm hover:bg-[var(--primary)]/5 transition-all">
+                   Editar Cita
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Modal Detalle Evento Rápido */}
       {eventoSeleccionado && (

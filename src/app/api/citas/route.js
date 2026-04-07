@@ -9,7 +9,7 @@ export async function GET(solicitud) {
 
   let consulta = supabase
     .from('wp_citas')
-    .select('*, wp_prospectos(nombre, telefono, correo)')
+    .select('*, wp_prospectos(nombre, telefono, correo, presupuesto, num_invitados_aprox, tipo_evento)')
     .order('fecha', { ascending: true })
     .order('hora', { ascending: true })
 

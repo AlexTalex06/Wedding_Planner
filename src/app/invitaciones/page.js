@@ -11,6 +11,8 @@ export default function PaginaInvitaciones() {
   const [mensajeEncabezado, setMensajeEncabezado] = useState('✨ Estás Invitado')
   const [mensajePersonalizado, setMensajePersonalizado] = useState('Hola {{first_name}}, nos encantaría que nos acompañaras en nuestro día especial. Por favor, mira la invitación oficial a continuación y confirma tu asistencia.')
   const [canal, setCanal] = useState('whatsapp')
+  const [tipoEnvio, setTipoEnvio] = useState('template') // 'template' o 'text'
+  const [nombrePlantilla, setNombrePlantilla] = useState('invitacion_boreal_v1')
   const [enviando, setEnviando] = useState(false)
   const [progresoEnvio, setProgresoEnvio] = useState({ total: 0, enviados: 0, exitosos: 0, fallidos: 0 })
   const [invitadosEnviados, setInvitadosEnviados] = useState([])
@@ -67,36 +69,62 @@ export default function PaginaInvitaciones() {
 
   const enviarInvitaciones = async () => {
     if (listaInvitados.length === 0) return
+    
+    if (tipoEnvio === 'template' && !nombrePlantilla) {
+      alert('Debes ingresar el nombre de la plantilla de Meta.')
+      return
+    }
+
     setEnviando(true)
     setProgresoEnvio({ total: listaInvitados.length, enviados: 0, exitosos: 0, fallidos: 0 })
     setInvitadosEnviados([])
 
-    for (let i = 0; i < listaInvitados.length; i++) {
-      const inv = listaInvitados[i]
-      const mensajeFinal = mensajePersonalizado.replace('{{first_name}}', inv.nombre.split(' ')[0])
-      const textoCompleto = `${mensajeEncabezado}\n\n${mensajeFinal}`
-
-      try {
-        if (canal === 'whatsapp' && inv.telefono) {
-          const resp = await fetch('/api/enviar-mensaje', {
-            method: 'POST', headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ to: inv.telefono, text: textoCompleto, plataforma: 'whatsapp' })
+    if (tipoEnvio === 'template') {
+       // --- ENVÍO PRO (MOTOR DE PLANTILLAS) ---
+       const resp = await fetch('/api/invitaciones/enviar', {
+          method: 'POST', 
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ invitados: listaInvitados, nombrePlantilla, eventoId })
+       })
+       const data = await resp.json()
+       
+       if (data.resultados) {
+          data.resultados.forEach(res => {
+             setProgresoEnvio(prev => ({ 
+                ...prev, 
+                enviados: prev.enviados + 1, 
+                exitosos: res.exito ? prev.exitosos + 1 : prev.exitosos,
+                fallidos: res.exito ? prev.fallidos : prev.fallidos + 1
+             }))
+             setInvitadosEnviados(prev => [...prev, { nombre: res.nombre, estado: res.exito ? 'enviado' : 'fallido', tiempo: 'Ahora' }])
           })
-          if (resp.ok) {
-            setProgresoEnvio(prev => ({ ...prev, enviados: prev.enviados + 1, exitosos: prev.exitosos + 1 }))
-            setInvitadosEnviados(prev => [...prev, { nombre: inv.nombre, estado: 'enviado', tiempo: 'Ahora mismo' }])
-          } else {
-            setProgresoEnvio(prev => ({ ...prev, enviados: prev.enviados + 1, fallidos: prev.fallidos + 1 }))
-            setInvitadosEnviados(prev => [...prev, { nombre: inv.nombre, estado: 'fallido', tiempo: 'Error' }])
-          }
-        } else {
-          setProgresoEnvio(prev => ({ ...prev, enviados: prev.enviados + 1, fallidos: prev.fallidos + 1 }))
-          setInvitadosEnviados(prev => [...prev, { nombre: inv.nombre, estado: 'sin_telefono', tiempo: 'Sin datos' }])
-        }
-      } catch {
-        setProgresoEnvio(prev => ({ ...prev, enviados: prev.enviados + 1, fallidos: prev.fallidos + 1 }))
-      }
-      await new Promise(r => setTimeout(r, 500)) // throttle
+       }
+    } else {
+       // --- ENVÍO SIMPLE (MANUAL / TEXTO) ---
+       for (let i = 0; i < listaInvitados.length; i++) {
+         const inv = listaInvitados[i]
+         const mensajeFinal = mensajePersonalizado.replace('{{first_name}}', inv.nombre.split(' ')[0])
+         const textoCompleto = `${mensajeEncabezado}\n\n${mensajeFinal}`
+
+         try {
+           if (canal === 'whatsapp' && inv.telefono) {
+             const resp = await fetch('/api/enviar-mensaje', {
+               method: 'POST', headers: { 'Content-Type': 'application/json' },
+               body: JSON.stringify({ to: inv.telefono, text: textoCompleto, plataforma: 'whatsapp' })
+             })
+             if (resp.ok) {
+               setProgresoEnvio(prev => ({ ...prev, enviados: prev.enviados + 1, exitosos: prev.exitosos + 1 }))
+               setInvitadosEnviados(prev => [...prev, { nombre: inv.nombre, estado: 'enviado', tiempo: 'Ahora mismo' }])
+             } else {
+               setProgresoEnvio(prev => ({ ...prev, enviados: prev.enviados + 1, fallidos: prev.fallidos + 1 }))
+               setInvitadosEnviados(prev => [...prev, { nombre: inv.nombre, estado: 'fallido', tiempo: 'Error' }])
+             }
+           }
+         } catch {
+           setProgresoEnvio(prev => ({ ...prev, enviados: prev.enviados + 1, fallidos: prev.fallidos + 1 }))
+         }
+         await new Promise(r => setTimeout(r, 500)) // throttle
+       }
     }
     setEnviando(false)
   }
@@ -176,20 +204,44 @@ export default function PaginaInvitaciones() {
           <div className="flex gap-6">
             <div className="w-10 h-10 rounded-full gold-gradient text-white flex items-center justify-center font-bold text-sm shrink-0">3</div>
             <div className="flex-1">
-              <h2 className="font-serif text-2xl font-bold mb-4">Canal de Envío</h2>
+              <h2 className="font-serif text-2xl font-bold mb-4">Método de Envío</h2>
+              
               <div className="flex bg-[var(--surface-container-low)] rounded-full p-1 w-fit mb-6">
-                <button onClick={() => setCanal('whatsapp')}
-                  className={`px-6 py-2 rounded-full text-sm font-medium transition-colors ${canal === 'whatsapp' ? 'bg-white text-[var(--on-surface)] shadow-sm font-semibold' : 'text-[var(--on-surface-variant)]'}`}>
-                  WhatsApp
+                <button onClick={() => setTipoEnvio('template')}
+                  className={`px-6 py-2 rounded-full text-sm font-medium transition-colors ${tipoEnvio === 'template' ? 'bg-white text-[var(--primary)] shadow-sm font-bold' : 'text-[var(--on-surface-variant)]'}`}>
+                  Plantilla (Pro)
                 </button>
-                <button onClick={() => setCanal('correo')}
-                  className={`px-6 py-2 rounded-full text-sm font-medium transition-colors ${canal === 'correo' ? 'bg-white text-[var(--on-surface)] shadow-sm font-semibold' : 'text-[var(--on-surface-variant)]'}`}>
-                  Correo
+                <button onClick={() => setTipoEnvio('text')}
+                  className={`px-6 py-2 rounded-full text-sm font-medium transition-colors ${tipoEnvio === 'text' ? 'bg-white text-[var(--on-surface)] shadow-sm font-bold' : 'text-[var(--on-surface-variant)]'}`}>
+                  Texto Simple
                 </button>
               </div>
+
+              {tipoEnvio === 'template' ? (
+                <div className="mb-6 animate-in slide-in-from-top-2 duration-300">
+                   <label className="text-xs font-bold uppercase tracking-widest text-[var(--primary)] opacity-60 block mb-2">Nombre Plantilla Meta</label>
+                   <input type="text" placeholder="ej: invitacion_boreal_v1" value={nombrePlantilla} onChange={e => setNombrePlantilla(e.target.value)}
+                    className="w-full bg-white border border-[var(--primary)]/30 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-[var(--primary)]/20 focus:border-[var(--primary)]" />
+                   <p className="text-[10px] text-emerald-600 font-bold mt-2 flex items-center gap-1">
+                      <span className="material-symbols-outlined text-sm">verified_user</span>
+                      Recomendado para evitar bloqueos por spam.
+                   </p>
+                </div>
+              ) : (
+                <div className="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-xl animate-in slide-in-from-top-2 duration-300">
+                   <p className="text-xs text-amber-800 flex items-center gap-2">
+                      <span className="material-symbols-outlined text-sm">warning</span>
+                      El envío de texto simple sin plantilla oficial puede causar que tu número sea bloqueado si mandas muchos mensajes.
+                   </p>
+                </div>
+              )}
+
               <button onClick={enviarInvitaciones} disabled={enviando || listaInvitados.length === 0}
                 className="w-full gold-gradient text-white py-4 rounded-full font-bold shadow-lg active:scale-95 transition-transform disabled:opacity-50 text-sm">
-                {enviando ? `Enviando... ${progresoEnvio.enviados}/${progresoEnvio.total}` : `Enviar a ${listaInvitados.length} Invitados`}
+                <span className="flex items-center justify-center gap-2">
+                   <span className="material-symbols-outlined">{tipoEnvio === 'template' ? 'bolt' : 'send'}</span>
+                   {enviando ? `Enviando... ${progresoEnvio.enviados}/${progresoEnvio.total}` : `Lanzar Invitaciones a ${listaInvitados.length} Personas`}
+                </span>
               </button>
             </div>
           </div>
