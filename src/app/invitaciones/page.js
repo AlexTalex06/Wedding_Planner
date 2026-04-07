@@ -16,6 +16,8 @@ export default function PaginaInvitaciones() {
   const [enviando, setEnviando] = useState(false)
   const [progresoEnvio, setProgresoEnvio] = useState({ total: 0, enviados: 0, exitosos: 0, fallidos: 0 })
   const [invitadosEnviados, setInvitadosEnviados] = useState([])
+  const [eventoDetalle, setEventoDetalle] = useState(null)
+  const [subiendoPdf, setSubiendoPdf] = useState(false)
   const fileInputRef = useRef(null)
 
   useEffect(() => {
@@ -26,6 +28,38 @@ export default function PaginaInvitaciones() {
     }
     cargar()
   }, [])
+
+  useEffect(() => {
+    if (eventoId) {
+      const ev = eventos.find(e => e.id === eventoId)
+      setEventoDetalle(ev || null)
+    } else {
+      setEventoDetalle(null)
+    }
+  }, [eventoId, eventos])
+
+  const alSubirPDF = async (e) => {
+    const file = e.target.files[0]
+    if (!file || !eventoId) return
+    setSubiendoPdf(true)
+    const formData = new FormData()
+    formData.append('archivo', file)
+    formData.append('eventoId', eventoId)
+
+    try {
+      const resp = await fetch('/api/eventos/upload', { method: 'POST', body: formData })
+      if (resp.ok) {
+        const data = await resp.json()
+        // Actualizar lista de eventos localmente para reflejar el cambio
+        setEventos(prev => prev.map(ev => ev.id === eventoId ? { ...ev, pdf_url: data.url } : ev))
+        alert('✅ ¡Invitación PDF cargada con éxito!')
+      }
+    } catch (err) {
+      console.error(err)
+    } finally {
+      setSubiendoPdf(false)
+    }
+  }
 
   const procesarCSV = (e) => {
     const archivo = e.target.files[0]
@@ -173,6 +207,46 @@ export default function PaginaInvitaciones() {
                   <span className="material-symbols-outlined text-[var(--primary)]">check_circle</span>
                   <span className="text-sm font-semibold">{nombreArchivo}</span>
                   <span className="text-sm text-[var(--on-surface-variant)]">{listaInvitados.length} Invitados Encontrados</span>
+                </div>
+              )}
+
+              {/* PDF Status and Quick Action */}
+              {eventoId && (
+                <div className="mt-6 p-5 rounded-2xl border border-[var(--outline-variant)]/20 bg-white shadow-sm animate-in fade-in duration-300">
+                  <h4 className="text-xs font-bold uppercase tracking-widest text-[var(--primary)] mb-3">Documento de Invitación</h4>
+                  {eventoDetalle?.pdf_url ? (
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 bg-emerald-50 rounded-full flex items-center justify-center text-emerald-600">
+                          <span className="material-symbols-outlined text-sm">description</span>
+                        </div>
+                        <div>
+                          <p className="text-sm font-bold text-[var(--on-surface)]">Invitación PDF Lista</p>
+                          <a href={eventoDetalle.pdf_url} target="_blank" className="text-[10px] text-emerald-600 hover:underline font-bold">Ver Archivo Actual</a>
+                        </div>
+                      </div>
+                      <label className="cursor-pointer text-[10px] font-bold text-[var(--on-surface-variant)] hover:text-[var(--primary)] underline transition-colors">
+                        Reemplazar
+                        <input type="file" className="hidden" accept=".pdf" onChange={alSubirPDF} />
+                      </label>
+                    </div>
+                  ) : (
+                    <div className="flex flex-col gap-4">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 bg-amber-50 rounded-full flex items-center justify-center text-amber-600">
+                          <span className="material-symbols-outlined text-sm">warning</span>
+                        </div>
+                        <div>
+                          <p className="text-sm font-bold text-amber-900 leading-tight text-balance">Falta el PDF de la invitación</p>
+                          <p className="text-[10px] text-amber-700">Sin el PDF, solo se enviará el texto de la plantilla.</p>
+                        </div>
+                      </div>
+                      <label className="gold-gradient text-white px-6 py-2 rounded-full text-xs font-bold shadow-md cursor-pointer text-center active:scale-95 transition-all">
+                        {subiendoPdf ? 'Subiendo...' : 'Sube el PDF ahora'}
+                        <input type="file" className="hidden" accept=".pdf" onChange={alSubirPDF} />
+                      </label>
+                    </div>
+                  )}
                 </div>
               )}
             </div>

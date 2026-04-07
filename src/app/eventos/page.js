@@ -8,6 +8,7 @@ export default function PaginaEventos() {
   const [cargando, setCargando] = useState(true)
   const [modalAbierto, setModalAbierto] = useState(false)
   const [eventoSeleccionado, setEventoSeleccionado] = useState(null)
+  const [modalEdicionAbierto, setModalEdicionAbierto] = useState(false)
   const [subiendo, setSubiendo] = useState(false)
 
   const cargarDatos = async () => {
@@ -61,6 +62,25 @@ export default function PaginaEventos() {
     const resp = await fetch(`/api/eventos?id=${id}`, { method: 'DELETE' })
     if (resp.ok) cargarDatos()
   }
+
+  const actualizarEvento = async (datos) => {
+    const resp = await fetch('/api/eventos', {
+       method: 'PATCH',
+       headers: { 'Content-Type': 'application/json' },
+       body: JSON.stringify({ id: eventoSeleccionado.id, ...datos })
+    })
+    if (resp.ok) {
+       setModalEdicionAbierto(false)
+       setEventoSeleccionado(null)
+       cargarDatos()
+    }
+  }
+
+  useEffect(() => {
+    const handleNuevo = () => setModalAbierto(true)
+    window.addEventListener('abrir_nuevo_evento', handleNuevo)
+    return () => window.removeEventListener('abrir_nuevo_evento', handleNuevo)
+  }, [])
 
   const alSubirArchivo = async (e, id) => {
     const file = e.target.files[0]
@@ -140,8 +160,22 @@ export default function PaginaEventos() {
                     <span>RSVP: {confirmados}/{totalInvitados}</span>
                     <span className="text-[var(--gold)] font-bold">{porcentaje}%</span>
                   </div>
-                  <div className="h-2 bg-[var(--ivory)] rounded-full overflow-hidden">
+                  <div className="h-2 bg-[var(--ivory)] rounded-full overflow-hidden mb-4">
                     <div className="h-full rounded-full transition-all duration-500" style={{ width: `${porcentaje}%`, background: 'linear-gradient(90deg, #775a19, #d4ad65)' }}></div>
+                  </div>
+                  
+                  {/* Status Indicator / Quick Action */}
+                  <div className="flex justify-between items-center">
+                    {evento.pdf_url ? (
+                       <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-1 rounded-full flex items-center gap-1">
+                          <span className="material-symbols-outlined text-[12px]">check_circle</span> PDF LISTO
+                       </span>
+                    ) : (
+                       <span className="text-[10px] font-bold text-amber-600 bg-amber-50 px-2 py-1 rounded-full flex items-center gap-1">
+                          <span className="material-symbols-outlined text-[12px]">warning</span> SIN INVITACIÓN
+                       </span>
+                    )}
+                    <button className="text-[10px] font-bold uppercase tracking-wider text-[var(--primary)] hover:underline">Ver Detalle</button>
                   </div>
                 </div>
               </div>
@@ -171,9 +205,18 @@ export default function PaginaEventos() {
                   <p className="text-sm font-semibold uppercase tracking-widest text-[var(--primary)] opacity-80 mt-1">{eventoSeleccionado.tipo_evento?.replace('_', ' ')}</p>
                 </div>
               </div>
-              <button type="button" onClick={() => setEventoSeleccionado(null)} className="w-10 h-10 rounded-full flex items-center justify-center hover:bg-[var(--surface-container)] text-[var(--on-surface-variant)] transition-colors">
+              <button type="button" onClick={() => setEventoSeleccionado(null)} className="w-10 h-10 rounded-full flex items-center justify-center hover:bg-[var(--surface-container)] text-[var(--on-surface-variant)] transition-colors ml-4">
                 <span className="material-symbols-outlined">close</span>
               </button>
+            </div>
+
+            <div className="flex gap-2 mb-8">
+               <button onClick={() => setModalEdicionAbierto(true)} className="bg-white border border-[var(--primary)]/30 text-[var(--primary)] px-4 py-2 rounded-xl text-xs font-bold hover:bg-[var(--primary)]/10 transition-all flex items-center gap-2">
+                  <span className="material-symbols-outlined text-sm">edit</span> Editar Datos
+               </button>
+               <button onClick={(e) => eliminarEvento(e, eventoSeleccionado.id)} className="bg-white border border-red-200 text-red-500 px-4 py-2 rounded-xl text-xs font-bold hover:bg-red-50 transition-all flex items-center gap-2">
+                  <span className="material-symbols-outlined text-sm">delete</span> Eliminar
+               </button>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-8">
@@ -272,6 +315,15 @@ export default function PaginaEventos() {
           </div>
         </div>
       )}
+      <ModalFormulario
+        abierto={modalEdicionAbierto}
+        alCerrar={() => setModalEdicionAbierto(false)}
+        titulo="Editar Evento"
+        campos={camposEvento}
+        valoresIniciales={eventoSeleccionado}
+        alEnviar={actualizarEvento}
+        textoBoton="Guardar Cambios"
+      />
     </div>
   )
 }

@@ -7,6 +7,7 @@ import { supabase } from '@/lib/supabase'
 
 const elementosNavegacion = [
   { nombre: 'Panel de Control', ruta: '/', icono: 'dashboard' },
+  { nombre: 'Eventos', ruta: '/eventos', icono: 'celebration' },
   { nombre: 'Invitaciones', ruta: '/invitaciones', icono: 'mail' },
   { nombre: 'Prospectos', ruta: '/prospectos', icono: 'group' },
   { nombre: 'Confirmaciones', ruta: '/confirmaciones', icono: 'event_available' },
@@ -71,10 +72,17 @@ export default function BarraLateral() {
               </p>
             </div>
           </div>
-          <Link href="/eventos" className="w-full gold-gradient text-white py-3 rounded-full font-semibold shadow-md active:scale-95 duration-200 ease-out text-sm flex items-center justify-center gap-2">
+          <button onClick={() => {
+            if (rutaActual === '/eventos') {
+              // Si ya estamos en eventos, disparamos el modal de nuevo evento (asumiendo que existe un evento global o evento emitter)
+              window.dispatchEvent(new CustomEvent('abrir_nuevo_evento'))
+            } else {
+              router.push('/eventos?nuevo=true')
+            }
+          }} className="w-full gold-gradient text-white py-3 rounded-full font-semibold shadow-md active:scale-95 duration-200 ease-out text-sm flex items-center justify-center gap-2">
             <span className="material-symbols-outlined text-lg">add</span>
-            Planear Nuevo Evento
-          </Link>
+            NUEVO EVENTO
+          </button>
         </div>
 
         <nav className="flex flex-col gap-2 flex-grow px-4">
