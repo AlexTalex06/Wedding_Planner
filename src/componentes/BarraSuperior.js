@@ -44,9 +44,16 @@ export default function BarraSuperior() {
     return () => document.removeEventListener('mousedown', handleClickFuera)
   }, [])
 
-  const cerrarSesion = async () => {
-    await supabase.auth.signOut()
-    router.push('/login')
+  const cerrarSesion = async (e) => {
+    if (e && e.preventDefault) e.preventDefault()
+    try {
+      await supabase.auth.signOut()
+    } catch (err) {
+      console.error('Error al cerrar sesión:', err)
+    } finally {
+      localStorage.clear()
+      window.location.href = '/login'
+    }
   }
 
   if (rutaActual === '/login') return null

@@ -23,9 +23,15 @@ export default function BarraLateral() {
   const [usuario, setUsuario] = useState({ nombre: 'Cargando...', rango: 'Planner' })
 
   const cerrarSesion = async (e) => {
-    e.preventDefault()
-    await supabase.auth.signOut()
-    router.push('/login')
+    if (e && e.preventDefault) e.preventDefault()
+    try {
+      await supabase.auth.signOut()
+    } catch (err) {
+      console.error('Error al cerrar sesión:', err)
+    } finally {
+      localStorage.clear()
+      window.location.href = '/login'
+    }
   }
 
   useEffect(() => {
