@@ -51,7 +51,6 @@ export default function BarraSuperior() {
     } catch (err) {
       console.error('Error al cerrar sesión:', err)
     } finally {
-      localStorage.clear()
       window.location.href = '/login'
     }
   }
