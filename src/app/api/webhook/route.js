@@ -16,9 +16,7 @@ export async function GET(solicitud) {
 }
 
 export async function POST(solicitud) {
-  // --- PAUSA TEMPORAL DEL WEBHOOK ---
-  // return NextResponse.json({ estado: 'pausado', mensaje: 'Chatbot en mantenimiento temporal' }, { status: 200 })
-  // ----------------------------------
+  // --- PAUSA TEMPORAL DEL WEBHOOK REMOVIDA ---
 
   try {
     const cuerpo = await solicitud.json()
@@ -63,7 +61,7 @@ export async function POST(solicitud) {
         
         // --- FILTRO DE PALABRA MÁGICA PARA LEADS NUEVOS ---
         const PALABRA_CLAVE = 'boreal'
-        const dijoPalabraClave = texto.toLowerCase().includes(PALABRA_CLAVE)
+        const dijoPalabraClave = texto.toLowerCase().trim().startsWith(PALABRA_CLAVE)
 
         if (!convExist && !invitadoMatch && !dijoPalabraClave) {
           console.log(`🚫 Ignorando mensaje de ${remitenteId}: No es invitado ni conversación activa, y no dijo '${PALABRA_CLAVE}'.`)
