@@ -16,8 +16,8 @@ export async function GET(solicitud) {
 }
 
 export async function POST(solicitud) {
-  // --- PAUSA TEMPORAL DEL WEBHOOK REMOVIDA ---
-
+  // --- PAUSA TEMPORAL DEL WEBHOOK ---
+  return NextResponse.json({ estado: 'apagado' }, { status: 200 })
   try {
     const cuerpo = await solicitud.json()
 
